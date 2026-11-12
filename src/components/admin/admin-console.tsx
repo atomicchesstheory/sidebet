@@ -233,7 +233,7 @@ function ScoringTab({ data, reload }: { data: AdminData; reload: () => Promise<v
       )}
       {!locked && (
         <section className="card grid gap-3 p-4">
-          <h2 className="font-display text-xl font-bold uppercase">Tell the AI how you score it</h2>
+          <h2 className="font-display text-xl font-bold uppercase">Write how you score it</h2>
           <textarea className="input min-h-28" value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Each drafted player gets 2 points for a match win and 3 extra if they beat a higher seed. Only main-bracket matches count." aria-label="Scoring instructions" />
           <button
             className="btn btn-lime w-fit"
@@ -249,7 +249,7 @@ function ScoringTab({ data, reload }: { data: AdminData; reload: () => Promise<v
           >
             {busy === "propose" ? "Reading your rules…" : "Turn into rules"}
           </button>
-          {aiErrors && <ErrorNote error={`The AI's proposal didn't validate: ${aiErrors.join("; ")}`} />}
+          {aiErrors && <ErrorNote error={`The proposal didn't validate: ${aiErrors.join("; ")}`} />}
         </section>
       )}
 
@@ -456,7 +456,6 @@ function ResultsTab({ data, reload }: { data: AdminData; reload: () => Promise<v
             <option value="pgn">PGN feed (chess)</option>
             <option value="espn">ESPN scoreboard JSON</option>
             <option value="sidebet_json">Side Bet JSON feed</option>
-            <option value="html">Results web page (AI reads it)</option>
             <option value="manual">Manual / admin-entered</option>
             {admin.demo && <option value="fixture">Demo fixture</option>}
           </select>

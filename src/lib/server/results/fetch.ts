@@ -83,24 +83,3 @@ export async function safeFetch(raw: string, accept = "*/*"): Promise<{ url: str
   }
   throw new AppError("validation", "Too many redirects.");
 }
-
-/** Reduce HTML to readable text before it goes anywhere near a model. */
-export function htmlToText(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<\/(p|div|tr|li|h\d|table|section)>/gi, "\n")
-    .replace(/<(br|hr)\s*\/?>/gi, "\n")
-    .replace(/<\/t[dh]>/gi, " | ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n\s*\n+/g, "\n")
-    .trim();
-}

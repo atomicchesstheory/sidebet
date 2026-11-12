@@ -5,7 +5,7 @@ import "./globals.css";
 import { Wordmark } from "@/components/brand";
 import { Nav } from "@/components/nav";
 import { getSessionUser } from "@/lib/server/auth";
-import { aiMode, config } from "@/lib/server/config";
+import { config } from "@/lib/server/config";
 import { ensureReady } from "@/lib/server/ready";
 import { getWallet } from "@/lib/server/wallet";
 
@@ -28,7 +28,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {config.mode === "demo" && (
           <div className="border-b border-lime/30 bg-lime/10 px-4 py-1.5 text-center text-xs text-lime">
             <strong className="chip-label">Demo mode</strong> · fictional data, local accounts, embedded database
-            {aiMode() === "demo" ? " · deterministic demo parser instead of AI" : " · AI: Claude"} · chips are free and worth nothing
+            {" "}· chips are free and worth nothing
           </div>
         )}
         <header className="sticky top-0 z-30 border-b border-line bg-ink/90 backdrop-blur">

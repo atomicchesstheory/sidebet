@@ -4,7 +4,7 @@
 
 Side Bet is a play-chip app for friendly bets and custom draft contests. You can draft players, write your own scoring rules in plain English, attach a results source, and the scoreboards update as matches finish. Chips are free and can't be redeemed.
 
-Stack: Next.js 16 (App Router, TypeScript, Tailwind v4) · Supabase Postgres, Auth and Realtime · Anthropic Claude for admin-only AI · Vercel.
+Stack: Next.js 16 (App Router, TypeScript, Tailwind v4) · Supabase Postgres, Auth and Realtime · Vercel. No AI or paid APIs.
 
 ---
 
@@ -19,7 +19,7 @@ Open http://localhost:3000. With no environment variables set, the app runs in *
 
 - an embedded PostgreSQL database (PGlite, stored in `./.data`) that runs **the same SQL migrations, RLS policies and functions** as production
 - local username/password accounts
-- a **deterministic demo parser** in place of the AI
+- the built-in rule parser (the app never calls an AI service)
 - live updates over server-sent events
 - three seeded demos with fictional people and events
 
@@ -51,7 +51,6 @@ To reset the demo, run `npm run demo:reset` and restart. Admins also get a **dem
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `ADMIN_USERNAMES`: who becomes admin (see below)
    - `CRON_SECRET`: a long random string
-   - `ANTHROPIC_API_KEY`: optional, for the AI features
 5. **Deploy to Vercel.** Import the GitHub repo; the framework is Next.js and there are no build settings to change. Realtime works automatically: the migration adds `contest_signals` to the `supabase_realtime` publication.
 6. **Optional demo content:** `SUPABASE_SERVICE_ROLE_KEY=… npm run db:seed` creates the fictional demo accounts and contests in Supabase.
 
@@ -62,14 +61,9 @@ Use any one of these:
 - Run `npm run make-admin -- yourname` (needs `DATABASE_URL`).
 - In the SQL editor, run `update public.profiles set is_admin = true where username = 'yourname';`
 
-### Configure the AI provider
+### No AI, no paid services
 
-Set `ANTHROPIC_API_KEY`. The model defaults to `claude-opus-5-5`; override it with `SIDEBET_AI_MODEL`. The AI is admin-only and keys stay server-side. The AI is used for three things:
-- turning scoring instructions into a structured, editable rules proposal, with clarifying questions and flagged unsupported rules
-- extracting facts from results web pages (`html` sources)
-- parsing typed results such as “Josiah won race two”
-
-Every model output is re-validated against strict schemas. Requests use structured outputs and the API's server-side refusal fallback. **Application code, not the model, applies approved rules to verified facts.** Without a key, the deterministic demo parser handles common phrasings and flags anything else.
+Side Bet calls **no AI service and no paid API**. Scoring instructions and typed results (e.g. “Josiah won race two”) are read by a built-in, rule-based parser; anything it can’t map is flagged so the admin handles it with an explicit adjustment. Results come from structured feeds (PGN, ESPN, Side Bet JSON) or admin-entered results. Chips are free play chips with no purchase or cash-out path.
 
 ### Scheduled result checks
 
@@ -96,7 +90,7 @@ Scheduled runs, the cron route and the admin **Check results now** button all ca
 **States.** A contest moves through `setup → open → (drafting) → locked/active → awaiting_settlement → settled`, or to `canceled`. A trigger enforces the allowed transitions, and terms freeze once the first entry is accepted.
 
 **Results pipeline** (`src/lib/server/results/pipeline.ts`):
-1. **Fetch.** An adapter reads the source: Side Bet JSON feed, PGN (e.g. Lichess broadcasts), ESPN scoreboard JSON, an HTML page read by the AI, admin-entered results, or demo fixtures. Fetching is limited to public http(s) URLs, with private IPs blocked on every redirect, a 10 s timeout and a 2 MB cap.
+1. **Fetch.** An adapter reads the source: Side Bet JSON feed, PGN (e.g. Lichess broadcasts), ESPN scoreboard JSON, admin-entered results, or demo fixtures. Fetching is limited to public http(s) URLs, with private IPs blocked on every redirect, a 10 s timeout and a 2 MB cap.
 2. **Validate.** Facts are checked with zod, and participants are matched to picks by name, alias and accent-insensitive comparison.
 3. **Review.** Ambiguous names, conflicting results, missing facts and post-payout corrections go to **admin review** instead of being scored.
 4. **Identify.** Each event has a stable `event_key` plus a fingerprint of its facts. Rechecking identical facts adds nothing.
@@ -149,7 +143,7 @@ That command runs a live public PGN feed through the same pipeline the scheduler
 supabase/migrations/        schema, ledger, state machine, RLS (production)
 supabase/shim/              local auth/roles shim for demo + tests only
 src/lib/scoring/            pure scoring engine, payouts, name matching, schemas
-src/lib/server/             db, auth, contests, admin, wallet, profiles, AI, results pipeline
+src/lib/server/             db, auth, contests, admin, wallet, profiles, rule parser, results pipeline
 src/app/                    pages + API routes (actions, live SSE, cron)
 fixtures/                   fictional demo feeds
 tests/                      unit, integration, real-Postgres concurrency

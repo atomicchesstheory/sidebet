@@ -6,7 +6,7 @@ import { notifyContest } from "./live";
 import { parseManualResult, proposeRules } from "./ai";
 import { ruleExamples } from "./rules-preview";
 import { readSource, type SourceRow, fixtureNames } from "./results/adapters";
-import { aiContextFor, checkContest, processFacts } from "./results/pipeline";
+import { checkContest, processFacts } from "./results/pipeline";
 import { assertPublicUrl } from "./results/fetch";
 import { betPayout, draftPayout, previewHash, type PayoutEntry } from "../scoring/payouts";
 import { computeStandings } from "../scoring/engine";
@@ -184,8 +184,7 @@ export async function revokeInvite(adminId: string, inviteId: string) {
 // ------------------------------------------------------------------- rules --
 export async function proposeRuleset(adminId: string, contestId: string, instructions: string) {
   if (instructions.trim().length < 5) throw new AppError("validation", "Describe how you score it.");
-  const ctx = await aiContextFor(contestId);
-  const ai = await proposeRules(instructions, ctx);
+  const ai = await proposeRules(instructions);
   if (!ai.result.ok) {
     return { ok: false as const, provider: ai.provider, errors: ai.result.errors, raw: ai.raw };
   }
@@ -236,7 +235,7 @@ export async function approveRuleset(adminId: string, rulesetId: string) {
 
 // ----------------------------------------------------------------- sources --
 export const SourceInput = z.object({
-  kind: z.enum(["fixture", "sidebet_json", "pgn", "espn", "html", "manual"]),
+  kind: z.enum(["fixture", "sidebet_json", "pgn", "espn", "manual"]),
   url: z.string().url().max(2000).nullable().default(null),
   label: z.string().trim().min(1).max(80).default("Results source"),
   config: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).default({}),
@@ -245,7 +244,7 @@ export const SourceInput = z.object({
 export async function addSource(adminId: string, contestId: string, raw: unknown) {
   const s = SourceInput.parse(raw);
   if (s.kind === "fixture" && !fixtureNames().includes(String(s.config.fixture))) throw new AppError("validation", "Unknown fixture.");
-  if (["sidebet_json", "pgn", "espn", "html"].includes(s.kind)) {
+  if (["sidebet_json", "pgn", "espn"].includes(s.kind)) {
     if (!s.url) throw new AppError("validation", "This source needs a URL.");
     await assertPublicUrl(s.url);
   }
@@ -272,7 +271,7 @@ export async function deleteSource(adminId: string, sourceId: string) {
 export async function previewSource(adminId: string, sourceId: string) {
   const [s] = await asUser(adminId, (q) => q.query<SourceRow>("select id, contest_id, kind, url, label, config from public.result_sources where id = $1", [sourceId]));
   if (!s) throw new AppError("validation", "Source not found.");
-  const read = await readSource(s, await aiContextFor(s.contest_id));
+  const read = await readSource(s);
   let plan = null;
   try {
     plan = await processFacts(s.contest_id, read.events, { source_id: s.id, source_url: read.source_url, origin: read.origin }, { dryRun: true });
@@ -308,7 +307,7 @@ export async function manualPreview(adminId: string, contestId: string, input: {
       else rejected.push({ event_key: String((f as { event_key?: string }).event_key ?? "?"), errors: p.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`) });
     }
   } else if (input.text?.trim()) {
-    const r = await parseManualResult(input.text.trim().slice(0, 4000), await aiContextFor(contestId));
+    const r = await parseManualResult(input.text.trim().slice(0, 4000));
     events = r.events;
     notes = r.notes;
     provider = r.provider;

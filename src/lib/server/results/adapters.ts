@@ -2,14 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { EventFactsSchema, type EventFacts } from "../../scoring/schema";
-import { extractFacts } from "../ai";
 import { AppError } from "../errors";
-import { htmlToText, safeFetch } from "./fetch";
+import { safeFetch } from "./fetch";
 
 export type SourceRow = {
   id: string;
   contest_id: string;
-  kind: "fixture" | "sidebet_json" | "pgn" | "espn" | "html" | "manual";
+  kind: "fixture" | "sidebet_json" | "pgn" | "espn" | "manual";
   url: string | null;
   label: string;
   config: Record<string, unknown>;
@@ -19,7 +18,7 @@ export type ReadResult = {
   events: EventFacts[];
   rejected: { event_key: string; errors: string[] }[];
   source_url: string | null;
-  origin: "feed" | "ai" | "fixture";
+  origin: "feed" | "fixture";
   notes: string;
   /** What the app could read, for the admin preview. */
   preview: string;
@@ -133,7 +132,7 @@ export function parseEspn(json: unknown, filter?: { event_id?: string; team?: st
 }
 
 // ------------------------------------------------------------- dispatch --
-export async function readSource(src: SourceRow, aiContext: string): Promise<ReadResult> {
+export async function readSource(src: SourceRow): Promise<ReadResult> {
   const cfg = src.config ?? {};
   if (src.kind === "manual") throw new AppError("validation", "Manual sources are entered by an admin, not fetched.");
   if (src.kind === "fixture") {
@@ -169,9 +168,5 @@ export async function readSource(src: SourceRow, aiContext: string): Promise<Rea
     const events = parseEspn(data, { event_id: cfg.event_id as string | undefined, team: cfg.team as string | undefined });
     return { ...validateList(events), source_url: r.url, origin: "feed", notes: `ESPN scoreboard: ${events.length} matching games`, preview: JSON.stringify(events, null, 2).slice(0, 4000) };
   }
-  // html: AI extraction from page text
-  const r = await safeFetch(src.url, "text/html, text/plain");
-  const text = /html/i.test(r.contentType) || /<html|<body|<table/i.test(r.text) ? htmlToText(r.text) : r.text;
-  const x = await extractFacts(text, aiContext);
-  return { events: x.events, rejected: x.rejected, source_url: r.url, origin: "ai", notes: `${x.provider}: ${x.notes}`, preview: text.slice(0, 4000) };
+  throw new AppError("validation", "This source type isn't supported. Use a PGN, ESPN or Side Bet JSON feed, or enter results manually.");
 }

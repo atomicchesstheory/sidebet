@@ -19,7 +19,6 @@
     "demo:reset": "node -e \"require('fs').rmSync('.data',{recursive:true,force:true})\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.8.0",
     "@electric-sql/pglite": "^0.5.16",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",

@@ -304,23 +304,6 @@ export async function processFacts(contestId: string, input: EventFacts[], meta:
 
 // --------------------------------------------------------------- checks --
 
-export async function aiContextFor(contestId: string): Promise<string> {
-  return asService(async (q) => {
-    const [c] = await q.query("select title, kind, category, description, resolution from public.contests where id = $1", [contestId]);
-    const pool = await q.query("select name, seed, aliases from public.pool_items where contest_id = $1 order by seed nulls last, name limit 200", [contestId]);
-    const outcomes = await q.query("select label from public.contest_outcomes where contest_id = $1", [contestId]);
-    return [
-      `Contest: ${c?.title} (${c?.kind}, ${c?.category})`,
-      c?.description ? `Description: ${c.description}` : "",
-      pool.length ? `Tracked picks: ${pool.map((p) => `${p.name}${p.seed ? ` [seed ${p.seed}]` : ""}${p.aliases?.length ? ` (aka ${p.aliases.join(", ")})` : ""}`).join("; ")}` : "",
-      outcomes.length ? `Bet outcomes: ${outcomes.map((o) => o.label).join(" | ")}` : "",
-      c?.resolution?.label ? `Tracked event: ${c.resolution.label}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
-  });
-}
-
 export type SourceCheck = { source_id: string; label: string; ok: boolean; error?: string; notes?: string; counts?: PipelineResult["counts"]; rejected?: number };
 
 export async function checkContest(contestId: string, trigger: "manual" | "schedule"): Promise<SourceCheck[]> {
@@ -328,11 +311,11 @@ export async function checkContest(contestId: string, trigger: "manual" | "sched
     q.query<SourceRow>("select id, contest_id, kind, url, label, config from public.result_sources where contest_id = $1 and enabled and kind <> 'manual' order by created_at", [contestId]),
   );
   const out: SourceCheck[] = [];
-  const ctx = sources.some((s) => s.kind === "html") ? await aiContextFor(contestId) : "";
+
   for (const s of sources) {
     await asService((q) => q.query("update public.result_sources set last_attempt_at = now() where id = $1", [s.id]));
     try {
-      const read = await readSource(s, ctx);
+      const read = await readSource(s);
       const res = await processFacts(contestId, read.events, { source_id: s.id, source_url: read.source_url, origin: read.origin });
       await asService(async (q) => {
         await q.query("update public.result_sources set last_success_at = now(), last_error = null, last_preview = $2::jsonb where id = $1", [

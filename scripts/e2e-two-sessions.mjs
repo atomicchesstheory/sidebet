@@ -88,10 +88,10 @@ async function main() {
   const cid = created.data.id;
   const instructions = "Each drafted player gets 2 points for a match win and 3 extra if they beat a higher seed. Only main-bracket matches count.";
   const prop = await admin.act("propose_rules", { contest_id: cid, instructions });
-  ok(prop.ok && prop.data.ok, `AI proposal created (${prop.data?.provider})`);
+  ok(prop.ok && prop.data.ok, `rules proposal created (${prop.data?.provider})`);
   const adminView = (await admin.json(`/api/admin/contests/${cid}`)).data;
   const draft = adminView.admin.rulesets.find((r) => r.status === "draft");
-  ok(draft.questions.length >= 2, `AI asked ${draft.questions.length} clarifying questions: ${draft.questions.map((q) => q.id).join(", ")}`);
+  ok(draft.questions.length >= 2, `parser asked ${draft.questions.length} clarifying questions: ${draft.questions.map((q) => q.id).join(", ")}`);
   const prev = await admin.act("preview_rules", { contest_id: cid, rules: draft.rules });
   const upsetEx = prev.data.examples.find((e) => e.title === "Upset");
   ok(upsetEx.results[0].total === 5, `rule preview: upset example scores 5 (${upsetEx.results[0].lines.map((l) => `${l.label} +${l.points}`).join(", ")})`);

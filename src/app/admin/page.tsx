@@ -5,7 +5,7 @@ import { Empty, StatusPill } from "@/components/ui";
 import { ago, fmtTime } from "@/lib/format";
 import { adminOverview } from "@/lib/server/admin";
 import { getSessionUser } from "@/lib/server/auth";
-import { aiMode, config } from "@/lib/server/config";
+import { config } from "@/lib/server/config";
 
 export const metadata = { title: "Admin" };
 
@@ -22,7 +22,7 @@ export default async function Admin() {
       </div>
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="chip-label rounded-full border border-line px-2 py-1 text-cream-dim">Mode: {config.mode}</span>
-        <span className="chip-label rounded-full border border-line px-2 py-1 text-cream-dim">AI: {aiMode() === "claude" ? `Claude (${config.aiModel})` : "demo parser — set ANTHROPIC_API_KEY"}</span>
+        <span className="chip-label rounded-full border border-line px-2 py-1 text-cream-dim">Parser: built-in (no AI, no paid services)</span>
         <span className="chip-label rounded-full border border-line px-2 py-1 text-cream-dim">Scheduler: {process.env.VERCEL ? "cron route" : config.localScheduler ? `local every ${config.schedulerIntervalSeconds}s` : "off"}</span>
       </div>
       {config.mode === "demo" && <DemoClock />}

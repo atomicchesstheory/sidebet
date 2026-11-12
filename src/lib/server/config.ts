@@ -14,10 +14,6 @@ export const config = {
   databaseUrl: env.DATABASE_URL || env.POSTGRES_URL || "",
   supabaseUrl: env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseAnonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-  anthropicKey: env.ANTHROPIC_API_KEY ?? "",
-  aiModel: env.SIDEBET_AI_MODEL || "claude-opus-5-5",
-  /** Force the deterministic demo parser even when a key is configured. */
-  forceDemoAi: env.SIDEBET_DEMO_AI === "1",
   sessionSecret: env.SESSION_SECRET || "sidebet-demo-session-secret-change-me",
   cronSecret: env.CRON_SECRET ?? "",
   pgliteDir: env.PGLITE_DIR || (env.VERCEL ? "/tmp/sidebet-pglite" : ".data/pglite"),
@@ -33,10 +29,6 @@ export const config = {
   localScheduler: env.SIDEBET_LOCAL_SCHEDULER !== "0",
   schedulerIntervalSeconds: Number(env.SIDEBET_CHECK_INTERVAL_SECONDS || 300),
 };
-
-export function aiMode(): "claude" | "demo" {
-  return config.anthropicKey && !config.forceDemoAi ? "claude" : "demo";
-}
 
 export function assertConfig() {
   if (config.mode === "supabase" && (!config.supabaseUrl || !config.supabaseAnonKey)) {

@@ -72,7 +72,7 @@ export function demoProposeRules(instructions: string): WireProposal {
       options.unseeded = /no bonus|don'?t|never/.test(t) ? "no_bonus" : "lowest";
       handled = true;
     }
-    if (!handled) unsupported.push({ text: s, reason: "The demo parser couldn't map this sentence to a rule. Add a manual adjustment or configure an AI key." });
+    if (!handled) unsupported.push({ text: s, reason: "The built-in parser couldn't map this sentence to a rule. Handle it with a manual adjustment, or rephrase it." });
   }
   if (rules.some((r) => r.id === "upset_bonus") && !/unseeded/.test(lower)) {
     questions.push({ id: "unseeded", question: "If a player has no seed, how should upsets work?", why: "The upset bonus compares seeds.", options: ["Treat unseeded as the lowest seed", "No upset bonus involving unseeded players"], option_key: "unseeded" });
