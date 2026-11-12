@@ -1,5 +1,5 @@
 import { asService, asUser, num, type Q } from "./db";
-import { AppError } from "./errors";
+import { AppError, isAppError } from "./errors";
 import { notifyContest } from "./live";
 import { computeStandings, type LiveContext } from "../scoring/engine";
 import type { Ruleset } from "../scoring/schema";
@@ -277,6 +277,17 @@ export async function getContestView(userId: string, contestId: string) {
   });
 }
 export type ContestView = Awaited<ReturnType<typeof getContestView>>;
+
+/** Like getContestView, but null when the contest doesn't exist or the user can't see it. */
+export async function findContestView(userId: string, contestId: string): Promise<ContestView | null> {
+  if (!/^[0-9a-f-]{36}$/.test(contestId)) return null;
+  try {
+    return await getContestView(userId, contestId);
+  } catch (e) {
+    if (isAppError(e) && e.code === "contest_not_found") return null;
+    throw e;
+  }
+}
 
 export async function joinContest(userId: string, contestId: string, outcomeId: string | null) {
   const entryId = await asUser(userId, async (q) => {

@@ -259,7 +259,8 @@ export async function processFacts(contestId: string, input: EventFacts[], meta:
           item.action === "correction"
             ? `Correction: ${facts.label ?? key}${deltaText ? ` — ${deltaText}` : " — no point change"}`
             : `${facts.label ?? key} (${facts.status.replace("_", " ")})${deltaText ? `: ${deltaText}` : ""}`;
-        if (c.kind === "draft" || item.action !== "update" || facts.status === "final") {
+        // Log what moved scores (or a final/corrected result); skip schedule/progress noise.
+        if (item.deltas.length > 0 || item.action === "correction" || facts.status === "final") {
           await q.query("insert into public.score_changes (contest_id, event_id, kind, summary, deltas) values ($1, $2, $3, $4, $5::jsonb)", [
             contestId, ev.id, item.action, summary, JSON.stringify(item.deltas),
           ]);

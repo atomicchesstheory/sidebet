@@ -1,0 +1,15 @@
+# Frequent scheduled result checks (Vercel Hobby crons run at most once a day).
+# Set repository secrets SIDEBET_URL (e.g. https://sidebet.vercel.app) and CRON_SECRET.
+name: Check results
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    if: ${{ vars.SIDEBET_CRON_ENABLED == 'true' }}
+    steps:
+      - name: Run scheduled result checks
+        run: |
+          curl -fsS --max-time 280 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ secrets.SIDEBET_URL }}/api/cron/check-results"

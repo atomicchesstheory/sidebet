@@ -89,7 +89,9 @@ async function upsertPool(q: Q, contestId: string, pool: unknown[]) {
 
 export async function updateContest(adminId: string, id: string, raw: unknown) {
   const patch = ContestInput.partial().parse(raw);
-  const cols = Object.entries(patch).filter(([k]) => k !== "request_id" && k !== "kind");
+  // zod applies defaults even in partial(); only touch keys the caller actually sent
+  const sent = new Set(Object.keys((raw ?? {}) as object));
+  const cols = Object.entries(patch).filter(([k]) => sent.has(k) && k !== "request_id" && k !== "kind");
   if (!cols.length) return;
   await asUser(adminId, (q) =>
     q.query(
@@ -318,7 +320,9 @@ export async function manualPreview(adminId: string, contestId: string, input: {
 
 export async function manualApply(adminId: string, contestId: string, facts: unknown[]) {
   const events = z.array(EventFactsSchema).min(1).max(50).parse(facts);
-  return processFacts(contestId, events, { origin: "manual", approved_by: adminId, source_url: null });
+  const res = await processFacts(contestId, events, { origin: "manual", approved_by: adminId, source_url: null });
+  await asService((q) => q.query("update public.contests set last_check_at = now(), last_success_at = now() where id = $1", [contestId]));
+  return res;
 }
 
 // ------------------------------------------------------------------ review --

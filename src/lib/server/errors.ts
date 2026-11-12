@@ -43,10 +43,13 @@ export const ERROR_MESSAGES: Record<string, [number, string]> = {
   rules_unresolved: [400, "Resolve every flagged rule before approving."],
 };
 
+const BRAND = Symbol.for("sidebet.AppError");
+
 export class AppError extends Error {
   code: string;
   status: number;
   detail?: unknown;
+  readonly [BRAND] = true;
   constructor(code: string, message?: string, detail?: unknown) {
     const known = ERROR_MESSAGES[code];
     super(message ?? known?.[1] ?? code);
@@ -56,9 +59,14 @@ export class AppError extends Error {
   }
 }
 
+/** Brand check instead of instanceof: bundlers can load this module more than once. */
+export function isAppError(e: unknown): e is AppError {
+  return !!e && typeof e === "object" && (e as Record<symbol, unknown>)[BRAND] === true;
+}
+
 /** Turn a Postgres error (raised by our functions/triggers) into an AppError. */
 export function mapDbError(e: unknown): unknown {
-  if (e instanceof AppError) return e;
+  if (isAppError(e)) return e;
   const err = e as { message?: string; code?: string; constraint?: string };
   const msg = (err?.message ?? "").trim();
   if (ERROR_MESSAGES[msg]) return new AppError(msg);
