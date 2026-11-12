@@ -1,0 +1,17 @@
+{
+  "title": "Harbor City Comets vs Ridgeview Owls (fictional demo feed)",
+  "stages": [
+    [ { "event_key": "game-comets-owls", "event_type": "game", "label": "Comets vs Owls", "status": "scheduled",
+        "participants": [ { "name": "Harbor City Comets", "score": 0 }, { "name": "Ridgeview Owls", "score": 0 } ],
+        "attributes": { "period": 0, "clock": "7:30 PM tip", "overtime": false } } ],
+    [ { "event_key": "game-comets-owls", "event_type": "game", "label": "Comets vs Owls", "status": "in_progress",
+        "participants": [ { "name": "Harbor City Comets", "score": 58 }, { "name": "Ridgeview Owls", "score": 61 } ],
+        "attributes": { "period": 3, "clock": "4:12", "overtime": false }, "evidence": "Q3 4:12 - Owls 61, Comets 58" } ],
+    [ { "event_key": "game-comets-owls", "event_type": "game", "label": "Comets vs Owls", "status": "in_progress",
+        "participants": [ { "name": "Harbor City Comets", "score": 96 }, { "name": "Ridgeview Owls", "score": 96 } ],
+        "attributes": { "period": 5, "clock": "2:40", "overtime": true }, "evidence": "OT 2:40 - 96-96" } ],
+    [ { "event_key": "game-comets-owls", "event_type": "game", "label": "Comets vs Owls", "status": "final",
+        "participants": [ { "name": "Harbor City Comets", "score": 104, "result": "win" }, { "name": "Ridgeview Owls", "score": 100, "result": "loss" } ],
+        "winner": "Harbor City Comets", "attributes": { "period": 5, "clock": "0:00", "overtime": true }, "evidence": "Final/OT - Comets 104, Owls 100" } ]
+  ]
+}
