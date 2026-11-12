@@ -9,8 +9,9 @@ import "server-only";
 const env = process.env;
 
 export const config = {
-  mode: (env.DATABASE_URL ? "supabase" : "demo") as "supabase" | "demo",
-  databaseUrl: env.DATABASE_URL ?? "",
+  // POSTGRES_URL is what the Vercel ↔ Supabase integration sets automatically.
+  mode: (env.DATABASE_URL || env.POSTGRES_URL ? "supabase" : "demo") as "supabase" | "demo",
+  databaseUrl: env.DATABASE_URL || env.POSTGRES_URL || "",
   supabaseUrl: env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseAnonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
   anthropicKey: env.ANTHROPIC_API_KEY ?? "",

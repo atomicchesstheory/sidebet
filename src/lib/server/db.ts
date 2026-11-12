@@ -85,7 +85,11 @@ export async function createPgDb(url: string): Promise<Db> {
   pgmod.types.setTypeParser(1700, (v: string) => Number(v));
   pgmod.types.setTypeParser(20, (v: string) => Number(v));
   const local = /localhost|127\.0\.0\.1/.test(url);
-  const pool = new pgmod.Pool({ connectionString: url, max: 5, ssl: local ? undefined : { rejectUnauthorized: false } });
+  // Strip sslmode/supa params from the URL (they'd override our ssl settings and
+  // fail on Supabase's certificate chain); encrypt with our own ssl option instead.
+  const u = new URL(url);
+  for (const k of ["sslmode", "supa", "pgbouncer"]) u.searchParams.delete(k);
+  const pool = new pgmod.Pool({ connectionString: u.toString(), max: 5, ssl: local ? undefined : { rejectUnauthorized: false } });
   const query = async <T = Row>(text: string, params?: unknown[]) => {
     try {
       return (await pool.query(text, params as any[])).rows as T[];

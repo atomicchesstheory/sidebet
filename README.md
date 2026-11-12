@@ -47,7 +47,7 @@ To reset the demo, run `npm run demo:reset` and restart. Admins also get a **dem
    Do **not** run `supabase/shim/*`. That file is for local demo and tests only.
 3. **Configure Auth.** Under Authentication → Providers, enable Email. For the smoothest sign-up, turn off “Confirm email”. If you leave it on, the app tells new users to check their email.
 4. **Fill in the environment variables** (see `.env.example`), in `.env.local` locally or in Vercel → Project → Settings → Environment Variables:
-   - `DATABASE_URL`: Database → Connection string → **Transaction pooler** (port 6543). Setting this switches the app to Supabase mode.
+   - `DATABASE_URL` (or `POSTGRES_URL`, which the Vercel ↔ Supabase integration sets for you): Database → Connection string → **Transaction pooler** (port 6543). Setting either switches the app to Supabase mode.
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `ADMIN_USERNAMES`: who becomes admin (see below)
    - `CRON_SECRET`: a long random string

@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key || !process.env.DATABASE_URL) return NextResponse.next();
+  if (!url || !key || !(process.env.DATABASE_URL || process.env.POSTGRES_URL)) return NextResponse.next();
   const { createServerClient } = await import("@supabase/ssr");
   let response = NextResponse.next({ request });
   const sb = createServerClient(url, key, {
