@@ -94,7 +94,6 @@ export function AchievementsScreen({ initial, balance: startBalance }: { initial
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {sorted.map((f) => {
           const done = f.tiers.filter((t) => t.state === "claimed").length;
-          const next = f.tiers.find((t) => t.state === "locked");
           const anyUnlocked = f.tiers.some((t) => t.state !== "locked");
           return (
             <div key={f.id} className={`card relative grid content-start gap-3 p-4 ${f.tiers.some((t) => t.state === "ready") ? "ach-ready border-lime" : ""}`}>
@@ -112,42 +111,45 @@ export function AchievementsScreen({ initial, balance: startBalance }: { initial
                 </div>
               </div>
 
-              <ul className="grid gap-2">
-                {f.tiers.map((t, i) => {
-                  const pct = Math.round((t.progress / t.target) * 100);
-                  const style = TIER_STYLE[i];
+              {(() => {
+                // Only the tier you're on: the first one not yet claimed.
+                const cur = f.tiers.find((t) => t.state !== "claimed");
+                if (!cur) {
                   return (
-                    <li key={t.id} className={`rounded-lg border p-2.5 ${t.state === "claimed" ? "border-line bg-panel-2/60" : t.state === "ready" ? "border-lime" : style.ring + " border-dashed"}`}>
-                      <div className="flex items-center gap-2">
-                        <span className={`chip-label w-14 shrink-0 ${style.text}`}>{style.name}</span>
-                        <span className="min-w-0 flex-1 text-sm">{t.blurb}</span>
-                        {t.state === "claimed" && (
-                          <span className={`chip-label text-lime ${burst?.id === t.id ? "pop-in" : ""}`}>✓ <Chips n={t.reward} className="text-cream-dim" /></span>
-                        )}
-                      </div>
-                      {t.state === "ready" && (
-                        <button className="btn btn-lime mt-2 w-full py-2" disabled={busy === t.id} onClick={() => claim(t)}>
-                          {busy === t.id ? "Claiming…" : <>Claim <Chips n={t.reward} sign className="text-ink" /></>}
-                        </button>
-                      )}
-                      {t.state === "locked" && t === next && (
-                        <div className="mt-2 grid gap-1">
-                          <div className="h-1.5 overflow-hidden rounded-full bg-panel-2" role="progressbar" aria-valuenow={t.progress} aria-valuemax={t.target} aria-label={`${t.title} progress`}>
-                            <div className="h-full rounded-full bg-teal transition-all" style={{ width: `${pct}%` }} />
-                          </div>
-                          <div className="num flex justify-between text-xs text-cream-faint">
-                            <span>{t.progress.toLocaleString()} / {t.target.toLocaleString()}</span>
-                            <span className="flex items-center gap-1">🔒 <Chips n={t.reward} /></span>
-                          </div>
-                        </div>
-                      )}
-                      {t.state === "locked" && t !== next && (
-                        <div className="num mt-1 flex justify-end text-xs text-cream-faint">🔒 <Chips n={t.reward} /></div>
-                      )}
-                    </li>
+                    <div className="flex items-center justify-between rounded-lg border border-lime/40 bg-lime/10 px-3 py-2.5">
+                      <span className={`chip-label text-lime ${burst?.family === f.id ? "pop-in" : ""}`}>✓ Complete — all 3 tiers</span>
+                      <Chips n={f.tiers.reduce((s, t) => s + t.reward, 0)} className="text-cream-dim" />
+                    </div>
                   );
-                })}
-              </ul>
+                }
+                const i = cur.tier - 1;
+                const style = TIER_STYLE[i];
+                const pct = Math.round((cur.progress / cur.target) * 100);
+                return (
+                  <div className="grid gap-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className={`chip-label ${style.text}`}>{style.name}</span>
+                      <span className="text-sm text-cream">{cur.blurb}</span>
+                    </div>
+                    {cur.state === "ready" ? (
+                      <button className="btn btn-lime w-full py-2.5" disabled={busy === cur.id} onClick={() => claim(cur)}>
+                        {busy === cur.id ? "Claiming…" : <>Claim <Chips n={cur.reward} sign className="text-ink" /></>}
+                      </button>
+                    ) : (
+                      <div className="grid gap-1">
+                        <div className="h-2 overflow-hidden rounded-full bg-panel-2" role="progressbar" aria-valuenow={cur.progress} aria-valuemax={cur.target} aria-label={`${cur.title} progress`}>
+                          <div className="h-full rounded-full bg-teal transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="num flex justify-between text-xs text-cream-faint">
+                          <span>{cur.progress.toLocaleString()} / {cur.target.toLocaleString()}</span>
+                          <span className="flex items-center gap-1">🔒 <Chips n={cur.reward} /></span>
+                        </div>
+                      </div>
+                    )}
+                    {burst?.family === f.id && <span className="chip-label pop-in text-lime">✓ {TIER_STYLE[Math.max(0, i - 1)].name} claimed</span>}
+                  </div>
+                );
+              })()}
               {burst?.family === f.id && <Burst reward={burst.reward} />}
             </div>
           );
