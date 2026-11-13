@@ -144,7 +144,7 @@ describe("public or private player-run bets", () => {
     await joinContest(ids.dan, pub, v.outcomes[0].id);
   });
 
-  it("organizer can switch until someone joins, then it's locked; others never can", async () => {
+  it("organizer can switch any time, even after people join; others never can", async () => {
     const cid = await createManualContest(ids.cat, { kind: "bet", title: "Switchable", stake: 5, sides: ["A", "B"] });
     expect(await code(setContestVisibility(ids.dan, cid, "public"))).toBe("forbidden");
     await setContestVisibility(ids.cat, cid, "public");
@@ -153,7 +153,16 @@ describe("public or private player-run bets", () => {
     await admin.setStatus(ids.cat, cid, "open");
     const v = await getContestView(ids.cat, cid);
     await joinContest(ids.cat, cid, v.outcomes[0].id);
-    expect(await code(setContestVisibility(ids.cat, cid, "public"))).toBe("terms_locked");
+    // after an entry: still switchable, and the entrant keeps access when it goes private again
+    await setContestVisibility(ids.cat, cid, "public");
+    expect((await listContests(ids.dan, "public")).map((c) => c.id)).toContain(cid);
+    const v2 = await getContestView(ids.dan, cid);
+    await joinContest(ids.dan, cid, v2.outcomes[1].id);
+    await setContestVisibility(ids.cat, cid, "private");
+    expect((await listContests(ids.ben, "public")).map((c) => c.id)).not.toContain(cid);
+    expect((await getContestView(ids.dan, cid)).viewer.entry_id).toBeTruthy();
+    // other locked terms are still locked
+    expect(await code(asUser(ids.cat, (q) => q.query("update public.contests set stake = 999 where id = $1", [cid])))).toBe("terms_locked");
   });
 });
 

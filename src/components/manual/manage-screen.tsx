@@ -167,14 +167,14 @@ function InvitePanel({ data, ctx }: { data: ManageView; ctx: Ctx }) {
         <div className="label">Who can see it?</div>
         <VisibilityChoice
           isPublic={c.visibility === "public"}
-          disabled={!!ctx.busy || !!c.terms_locked_at}
+          disabled={!!ctx.busy}
           onChange={(pub) => { if (pub !== (c.visibility === "public")) ctx.run("visibility", () => act("set_visibility", { contest_id: c.id, visibility: pub ? "public" : "private" })); }}
         />
-        {c.terms_locked_at ? (
-          <p className="text-xs text-cream-faint">🔒 Locked once someone joined. It&apos;s part of the terms everyone agreed to.</p>
-        ) : c.visibility === "public" && c.status === "setup" ? (
-          <p className="text-xs text-cream-faint">It shows up on Browse as soon as you open entries.</p>
-        ) : null}
+        <p className="text-xs text-cream-faint">
+          {c.visibility === "public" && c.status === "setup"
+            ? "It shows up on Browse as soon as you open entries."
+            : "You can switch this anytime. People who already joined keep their spot either way."}
+        </p>
       </div>
 
       <div className="grid gap-2">
