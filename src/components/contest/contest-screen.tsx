@@ -374,6 +374,8 @@ function BetBoard({ view, onChanged }: { view: ContestView; onChanged: () => voi
         </div>
       )}
 
+      <WhoIsIn view={view} />
+
       <div className="grid gap-3 md:grid-cols-2">
         {view.outcomes.map((o) => {
           const mine = view.my_pick === o.id;
@@ -427,6 +429,37 @@ function BetBoard({ view, onChanged }: { view: ContestView; onChanged: () => voi
         <div className="card p-4 text-sm text-cream-dim">🔒 Entries are locked.</div>
       ) : null}
     </section>
+  );
+}
+
+/** Who has joined a bet. Names are always visible; which side they took stays hidden until entries lock. */
+function WhoIsIn({ view }: { view: ContestView }) {
+  const n = view.entrants.length;
+  const hidden = !view.picks_visible && !view.viewer.is_admin;
+  return (
+    <div className="card grid gap-2 p-4">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <h2 className="font-display text-xl font-bold uppercase">Who&apos;s in</h2>
+        <span className="num text-sm text-cream-dim">{n} {n === 1 ? "player" : "players"} · pot <Chips n={view.pot} className="text-cream" /></span>
+        {hidden && n > 0 && <span className="ml-auto text-xs text-cream-faint">🔒 Picks stay secret until entries lock</span>}
+      </div>
+      {n === 0 ? (
+        <p className="text-sm text-cream-dim">Nobody&apos;s in yet. Be the first.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {view.entrants.map((e) => {
+            const pick = view.outcomes.find((o) => o.backers.some((b) => b.user_id === e.user_id));
+            const showPick = pick && (!hidden || e.user_id === view.viewer.id);
+            return (
+              <Link key={e.entry_id} href={`/u/${e.username}`} className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${showPick ? sideBorder[pick.color] : "border-line"}`}>
+                <span>{e.username}{e.user_id === view.viewer.id ? " (you)" : ""}</span>
+                {showPick ? <span className={`text-xs ${sideText[pick.color]}`}>· {pick.label}</span> : hidden ? <span className="text-xs text-cream-faint">· 🔒</span> : null}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -532,7 +565,7 @@ function TermsCard({ view }: { view: ContestView }) {
       </div>
       <TermsSummary view={view} />
       <div className="text-sm">Pot <Chips n={view.pot} /> from {view.entrants.length} {view.entrants.length === 1 ? "entry" : "entries"}</div>
-      {view.contest.kind === "bet" || !view.rosters.length ? <Entrants view={view} /> : null}
+      {view.contest.kind === "draft" && !view.rosters.length ? <Entrants view={view} /> : null}
     </div>
   );
 }

@@ -44,7 +44,8 @@ export default async function Home() {
   const [wallet, mine, pub] = await Promise.all([getWallet(user.id), listContests(user.id, "mine"), listContests(user.id, "public")]);
   const active = mine.filter((c) => !["settled", "canceled"].includes(c.status));
   const done = mine.filter((c) => ["settled", "canceled"].includes(c.status));
-  const openPublic = pub.filter((c) => c.status === "open" && !c.joined);
+  // Every public bet that's still going, including ones you created or joined (they get a "You're in" tag).
+  const livePublic = pub.filter((c) => !["settled", "canceled", "setup"].includes(c.status));
   return (
     <div className="grid gap-8">
       <div className="flex flex-wrap items-end gap-3">
@@ -65,13 +66,13 @@ export default async function Home() {
       </section>
       <section className="grid gap-3">
         <div className="flex items-baseline gap-3">
-          <h2 className="font-display text-2xl font-bold uppercase">Open now</h2>
-          <Link href="/browse" className="link text-sm">Browse all</Link>
+          <h2 className="font-display text-2xl font-bold uppercase">Public bets</h2>
+          {livePublic.length > 6 && <Link href="/browse" className="link text-sm">See all {livePublic.length}</Link>}
         </div>
-        {openPublic.length ? (
-          <div className="grid gap-3 md:grid-cols-2">{openPublic.slice(0, 4).map((c) => <ContestCard key={c.id} c={c} />)}</div>
+        {livePublic.length ? (
+          <div className="grid gap-3 md:grid-cols-2">{livePublic.slice(0, 6).map((c) => <ContestCard key={c.id} c={c} />)}</div>
         ) : (
-          <Empty title="No open public contests">Have an idea? <Link href="/requests" className="link">Request a contest</Link>.</Empty>
+          <Empty title="No public bets right now"><Link href="/new" className="link">Start one</Link> and make it public so anyone can jump in.</Empty>
         )}
       </section>
       {done.length > 0 && (
