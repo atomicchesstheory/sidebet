@@ -42,8 +42,16 @@ export function ContestScreen({ initial }: { initial: ContestView }) {
           </span>
         </div>
         <h1 className="font-display text-4xl font-extrabold uppercase leading-none md:text-5xl">{c.title}</h1>
-        {c.description && <p className="max-w-3xl text-cream-dim">{c.description}</p>}
-        {view.viewer.is_admin && (
+        {c.description && <p className="max-w-3xl whitespace-pre-line text-cream-dim">{c.description}</p>}
+        {c.manual && view.organizer && (
+          <div className="text-sm text-cream-dim">Run by <Link href={`/u/${view.organizer}`} className="font-semibold text-cream hover:text-lime">{view.organizer}</Link> · results entered by hand</div>
+        )}
+        {c.manual && view.viewer.can_manage && !closed && (
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/c/${c.id}/manage`} className="btn btn-lime px-3 py-1.5 text-sm">Run this bet</Link>
+          </div>
+        )}
+        {!c.manual && view.viewer.is_admin && (
           <div className="flex flex-wrap gap-2">
             <Link href={`/admin/c/${c.id}`} className="btn btn-ghost px-3 py-1.5 text-sm">Manage contest</Link>
             {view.open_reviews > 0 && <Link href={`/admin/c/${c.id}?tab=review`} className="btn btn-ghost px-3 py-1.5 text-sm text-amber">{view.open_reviews} to review</Link>}
@@ -140,7 +148,9 @@ function DraftBoard({ view }: { view: ContestView }) {
         <p className="text-cream-dim">
           {c.status === "drafting"
             ? "Picks are happening now."
-            : c.draft_mode === "offline"
+            : c.manual
+              ? `${view.organizer ?? "The organizer"} enters everyone's rosters once people have joined.`
+              : c.draft_mode === "offline"
               ? "Rosters were drafted offline. The commish will load them before scoring starts."
               : "The live draft starts once everyone is in."}
         </p>
@@ -182,7 +192,7 @@ function DraftBoard({ view }: { view: ContestView }) {
         ) : (
           <div className="grid gap-1">
             {rosters.map((r) => (
-              <button key={r.entry_id} onClick={() => setSelected(r.entry_id)} className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-left ${selected === r.entry_id ? "bg-panel-2" : ""}`}>
+              <button key={r.entry_id} onClick={() => { setSelected(r.entry_id); document.getElementById(`roster-${r.entry_id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-left ${selected === r.entry_id ? "bg-panel-2" : ""}`}>
                 <span className="num w-8 font-display text-2xl font-bold text-cream-faint">{r.place}</span>
                 <span className={`flex-1 font-semibold ${sideText[seatColor(view, r.entry_id)]}`}>{r.username}{r.tied ? " (tied)" : ""}{r.user_id === view.viewer.id ? " · you" : ""}</span>
                 <span className="num font-display text-3xl font-extrabold">{pts(r.total)}</span>
@@ -210,14 +220,15 @@ function DraftBoard({ view }: { view: ContestView }) {
           ))}
         </div>
       )}
-      <div className={`grid gap-4 ${two ? "md:grid-cols-2" : ""}`}>
-        {(two ? ordered : rosters.filter((r) => r.entry_id === selected)).map((r) => (
-          <div key={r.entry_id} className={two && selected !== r.entry_id ? "hidden md:block" : ""}>
-            <RosterCard view={view} roster={r} />
+      {/* Every player's roster and score, all at once */}
+      {!two && <h2 className="font-display text-2xl font-bold uppercase">Every roster</h2>}
+      <div className={`grid gap-4 ${two ? "md:grid-cols-2" : "md:grid-cols-2 xl:grid-cols-3"}`}>
+        {(two ? ordered : rosters).map((r) => (
+          <div key={r.entry_id} id={`roster-${r.entry_id}`} className={two && selected !== r.entry_id ? "hidden md:block" : ""}>
+            <RosterCard view={view} roster={r} highlight={!two && selected === r.entry_id} />
           </div>
         ))}
       </div>
-      {!two && <p className="text-sm text-cream-dim">Tap a row in the standings to open that roster.</p>}
     </section>
   );
 }
@@ -226,10 +237,10 @@ function seatOf(view: ContestView, entryId: string) {
   return view.entrants.find((e) => e.entry_id === entryId)?.seat ?? 0;
 }
 
-function RosterCard({ view, roster }: { view: ContestView; roster: ContestView["rosters"][number] }) {
+function RosterCard({ view, roster, highlight = false }: { view: ContestView; roster: ContestView["rosters"][number]; highlight?: boolean }) {
   const color = seatColor(view, roster.entry_id);
   return (
-    <div className={`card overflow-hidden border-t-4 ${sideBorder[color]}`}>
+    <div className={`card overflow-hidden border-t-4 ${sideBorder[color]} ${highlight ? "ring-2 ring-cream/30" : ""}`}>
       <div className="flex items-baseline justify-between px-4 pb-2 pt-3">
         <div>
           <div className={`font-display text-2xl font-bold uppercase ${sideText[color]}`}>{roster.username}</div>
@@ -531,6 +542,12 @@ function ResultsCard({ view }: { view: ContestView }) {
   return (
     <div className="card grid content-start gap-2 p-4 text-sm">
       <h2 className="font-display text-xl font-bold uppercase">Results</h2>
+      {c.manual ? (
+        <>
+          <div className="text-cream-dim">Scores and the winner are entered by hand by {view.organizer ?? "the organizer"}.</div>
+          <div><span className="text-cream-dim">Last update:</span> <span className="num">{c.last_success_at ? ago(c.last_success_at, view.server_now) : "no scores yet"}</span></div>
+        </>
+      ) : (<>
       <div className="flex items-center gap-2">
         <span className="text-cream-dim">Standing:</span>
         <StatusPill status={c.status === "settled" ? "final" : c.result_status === "none" ? "scheduled" : c.result_status} />
@@ -542,6 +559,7 @@ function ResultsCard({ view }: { view: ContestView }) {
           Source problem: {c.last_error}. Showing the last verified scores.
         </div>
       )}
+      </>)}
       {c.kind === "draft" && view.ruleset && <ScoringButton view={view} />}
     </div>
   );

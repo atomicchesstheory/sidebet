@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Chips } from "@/components/brand";
+import { FriendButton } from "@/components/friends/friend-button";
+import { friendStatus } from "@/lib/server/friends";
 import { Empty, StatusPill } from "@/components/ui";
 import { fmtTime } from "@/lib/format";
 import { getSessionUser } from "@/lib/server/auth";
@@ -26,20 +28,42 @@ export default async function Profile({ params, searchParams }: { params: Promis
   }
   const { profile, stats, history, draftFinishes, h2h } = data;
   const focus = vs ? h2h.find((h) => h.username === vs) : null;
+  const fStatus = await friendStatus(user.id, profile.id);
+  const nemesis = [...h2h].filter((h) => h.l > h.w).sort((a, b) => b.l - b.w - (a.l - a.w))[0];
+  const victim = [...h2h].filter((h) => h.w > h.l).sort((a, b) => b.w - b.l - (a.w - a.l))[0];
   return (
     <div className="grid gap-6">
       <header className="grid gap-1">
         {profile.is_admin && <div className="chip-label text-cream-faint">admin</div>}
         <h1 className="font-display text-5xl font-extrabold uppercase leading-none">{profile.username}</h1>
+        <FriendButton userId={profile.id} username={profile.username} status={fStatus} />
       </header>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <Stat label="Record" value={<span className="num">{stats.wins}-{stats.losses}{stats.ties ? `-${stats.ties}` : ""}</span>} hint="W-L-T, settled only" />
-        <Stat label="Completed" value={<span className="num">{stats.completed}</span>} hint={`${stats.bets_completed} bets · ${stats.drafts_completed} drafts`} />
-        <Stat label="Net chips" value={<Chips n={stats.net_chips} sign className={stats.net_chips >= 0 ? "text-lime" : "text-rose"} />} hint="payouts + refunds − stakes" />
-        <Stat label="In play" value={<span className="num">{stats.in_play}</span>} />
-        <Stat label="Canceled" value={<span className="num">{stats.canceled}</span>} hint="not counted in record" />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <Stat label="Record" value={<span className="num">{stats.wins}-{stats.losses}{stats.ties ? `-${stats.ties}` : ""}</span>} hint={stats.win_rate === null ? "no finished contests yet" : `${stats.win_rate}% win rate`} />
+        <Stat label="Biggest win" value={<Chips n={stats.biggest_win} sign className={stats.biggest_win > 0 ? "text-lime" : ""} />} hint="most chips won in one contest" />
+        <Stat label="Chips won" value={<Chips n={stats.chips_won} className={stats.chips_won > 0 ? "text-lime" : ""} />} hint={`net ${stats.net_chips >= 0 ? "+" : ""}${stats.net_chips.toLocaleString()} after losses`} />
+        <Stat label="Best streak" value={<span className="num">{stats.best_streak}{stats.current_streak >= 2 ? " 🔥" : ""}</span>} hint={stats.current_streak ? `on a ${stats.current_streak}-win streak now` : "wins in a row"} />
+        <Stat label="Biggest pot" value={<Chips n={stats.biggest_pot} />} hint="largest pot played for" />
+        <Stat label="In play" value={<span className="num">{stats.in_play}</span>} hint={`${stats.completed} finished`} />
       </div>
+
+      {(nemesis || victim) && (
+        <div className="grid gap-3 md:grid-cols-2">
+          {nemesis && (
+            <Link href={`/u/${profile.username}?vs=${nemesis.username}`} className="card flex items-center gap-3 p-4 hover:border-rose/60">
+              <span className="text-3xl">😤</span>
+              <div><div className="chip-label text-rose">Nemesis</div><div className="font-display text-2xl font-bold uppercase">{nemesis.username}</div><div className="num text-xs text-cream-dim">{nemesis.w}-{nemesis.l} head-to-head</div></div>
+            </Link>
+          )}
+          {victim && (
+            <Link href={`/u/${profile.username}?vs=${victim.username}`} className="card flex items-center gap-3 p-4 hover:border-lime/60">
+              <span className="text-3xl">😎</span>
+              <div><div className="chip-label text-lime">Favorite victim</div><div className="font-display text-2xl font-bold uppercase">{victim.username}</div><div className="num text-xs text-cream-dim">{victim.w}-{victim.l} head-to-head</div></div>
+            </Link>
+          )}
+        </div>
+      )}
 
       {focus && (
         <div className="card border-lime/50 p-4">

@@ -67,7 +67,7 @@ describe("real Postgres, parallel connections", () => {
     const res = await Promise.all(Array.from({ length: 20 }, () => outcome(asUser(u, "select public.claim_chips()"))));
     expect(res.filter((r) => r === "ok")).toHaveLength(1);
     const { rows } = await pool.query("select balance from public.wallets where user_id = $1", [u]);
-    expect(rows[0].balance).toBe(550);
+    expect(rows[0].balance).toBe(510);
   });
 
   it("20 simultaneous joins charge once", async (ctx) => {

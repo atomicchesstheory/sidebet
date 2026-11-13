@@ -1,4 +1,5 @@
 import { asUser, num } from "./db";
+import { bestStreak } from "./achievements";
 import { AppError } from "./errors";
 
 type HistRow = {
@@ -43,18 +44,27 @@ export async function getProfile(viewerId: string, username: string) {
     );
 
     const settled = history.filter((h) => h.contest_status === "settled");
+    const nets = settled.map((h) => num(h.payout) + num(h.refund) - num(h.stake));
+    const wins = settled.filter((h) => h.status === "won").length;
+    const losses = settled.filter((h) => h.status === "lost").length;
+    const ties = settled.filter((h) => h.status === "tied").length;
+    // oldest first for streaks
+    const results = [...settled].sort((a, b) => String(a.settled_at).localeCompare(String(b.settled_at))).map((h) => h.status);
+    let current = 0;
+    for (let i = results.length - 1; i >= 0 && results[i] === "won"; i--) current++;
     const stats = {
       completed: settled.length,
-      bets_completed: settled.filter((h) => h.kind === "bet").length,
-      drafts_completed: settled.filter((h) => h.kind === "draft").length,
-      wins: settled.filter((h) => h.status === "won").length,
-      losses: settled.filter((h) => h.status === "lost").length,
-      ties: settled.filter((h) => h.status === "tied").length,
-      pushes: settled.filter((h) => h.status === "push").length,
-      canceled: history.filter((h) => h.contest_status === "canceled").length,
+      wins,
+      losses,
+      ties,
+      win_rate: wins + losses + ties ? Math.round((wins / (wins + losses + ties)) * 100) : null,
+      biggest_win: nets.reduce((m, n) => Math.max(m, n), 0),
+      chips_won: nets.reduce((s, n) => s + Math.max(n, 0), 0),
+      net_chips: nets.reduce((s, n) => s + n, 0),
+      best_streak: bestStreak(results),
+      current_streak: current,
+      biggest_pot: settled.reduce((m, h) => Math.max(m, num(h.stake) * num(h.entrants)), 0),
       in_play: history.filter((h) => !["settled", "canceled"].includes(h.contest_status)).length,
-      // payouts + refunds − stakes across every contest entry (claims/grants excluded)
-      net_chips: history.reduce((s, h) => s + num(h.payout) + num(h.refund) - num(h.stake), 0),
     };
     const draftFinishes = settled
       .filter((h) => h.kind === "draft")

@@ -46,6 +46,8 @@ export type ContestRow = {
   settled_at: string | null;
   canceled_at: string | null;
   cancel_reason: string | null;
+  manual: boolean;
+  created_by: string | null;
 };
 
 export const TIE_TEXT: Record<string, string> = {
@@ -72,7 +74,7 @@ export async function listContests(userId: string, scope: "public" | "mine" | "a
       scope === "public"
         ? "c.visibility = 'public' and c.status <> 'setup'"
         : scope === "mine"
-          ? "exists (select 1 from public.entries e where e.contest_id = c.id and e.user_id = auth.uid()) or exists (select 1 from public.contest_access a where a.contest_id = c.id and a.user_id = auth.uid())"
+          ? "c.created_by = auth.uid() and c.manual or exists (select 1 from public.entries e where e.contest_id = c.id and e.user_id = auth.uid()) or exists (select 1 from public.contest_access a where a.contest_id = c.id and a.user_id = auth.uid())"
           : "true";
     return q.query<ContestRow & { entrants: number; pot: number; joined: boolean }>(
       `select c.*,
@@ -106,9 +108,11 @@ export async function getContestView(userId: string, contestId: string) {
     await refresh(q, contestId);
     const [c] = await q.query<ContestRow>("select * from public.contests where id = $1", [contestId]);
     if (!c) throw new AppError("contest_not_found");
-    const [{ is_admin }] = await q.query<{ is_admin: boolean }>("select public.is_admin() as is_admin");
-    const [{ picks_visible }] = await q.query<{ picks_visible: boolean }>("select public.picks_visible($1) as picks_visible", [contestId]);
-    const [{ now }] = await q.query<{ now: Date }>("select public.app_now() as now");
+    const [{ is_admin, can_manage, picks_visible, now, organizer }] = await q.query<{ is_admin: boolean; can_manage: boolean; picks_visible: boolean; now: Date; organizer: string | null }>(
+      `select public.is_admin() as is_admin, public.can_manage_contest($1) as can_manage, public.picks_visible($1) as picks_visible,
+              public.app_now() as now, (select username from public.profiles where id = $2) as organizer`,
+      [contestId, c.created_by],
+    );
 
     const entrants = await q.query<{
       entry_id: string; user_id: string; username: string; display_name: string; seat: number; status: string;
@@ -194,6 +198,17 @@ export async function getContestView(userId: string, contestId: string) {
         "select id, pool_item_id, entry_id, points, reason from public.adjustments where contest_id = $1 order by created_at",
         [contestId],
       );
+      // Player-run contests: the organizer types a running total per pick.
+      const manualRows = await q.query<{ pool_item_id: string; points: number; note: string; updated_at: string }>(
+        "select pool_item_id, points, note, updated_at from public.manual_scores where contest_id = $1",
+        [contestId],
+      );
+      for (const m of manualRows) {
+        lines.push({
+          id: `manual:${m.pool_item_id}`, pool_item_id: m.pool_item_id, rule_id: "manual", label: "Score", points: num(m.points),
+          detail: m.note || "Entered by the organizer", source_url: null, event_id: "", event_label: "Manual score", event_status: "final",
+        });
+      }
       const standings = computeStandings({
         entries: entrants.map((e) => ({ id: e.entry_id, user_id: e.user_id, seat: e.seat, joined_at: e.joined_at })),
         picks: dpicks,
@@ -259,7 +274,8 @@ export async function getContestView(userId: string, contestId: string) {
     return {
       contest: c,
       server_now: new Date(now).toISOString(),
-      viewer: { id: userId, is_admin, entry_id: mine?.entry_id ?? null, join_block: joinBlock },
+      viewer: { id: userId, is_admin, can_manage, entry_id: mine?.entry_id ?? null, join_block: joinBlock },
+      organizer,
       terms: { payout: payoutText(c), tie: TIE_TEXT[c.kind], cancel: CANCEL_TEXT },
       pot,
       entrants,

@@ -20,7 +20,8 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  await sb.auth.getUser();
+  // getClaims() refreshes an expired session and verifies the JWT.
+  await sb.auth.getClaims();
   return response;
 }
 

@@ -3,21 +3,29 @@ import * as admin from "./admin";
 import { getSessionUser, type SessionUser } from "./auth";
 import { joinContest, makeDraftPick, redeemInvite } from "./contests";
 import { AppError } from "./errors";
+import { asService, asUser } from "./db";
+import { addFriendsToContest, removeFriend, respondFriendRequest, sendFriendRequest } from "./friends";
+import { claimAchievement } from "./achievements";
+import { createManualContest, editContestDetails, setManualScores } from "./manual";
 import { submitRequest } from "./profiles";
 import { claimChips } from "./wallet";
 
 /**
  * Every mutation goes through this table. `admin: true` is checked here on
  * the server AND again by the database (RLS policies / is_admin() checks).
+ * `manage` actions are allowed for admins and for the player who created a
+ * manual contest; the database re-checks with can_manage_contest().
  */
-type Action = { admin?: boolean; input: z.ZodType; run: (u: SessionUser, input: never) => Promise<unknown> };
+type Access = boolean | "manage";
+type Action = { admin?: Access; input: z.ZodType; run: (u: SessionUser, input: never) => Promise<unknown> };
 
 const id = z.string().uuid();
-const A = <S extends z.ZodType>(input: S, run: (u: SessionUser, i: z.infer<S>) => Promise<unknown>, isAdmin = false): Action => ({
-  admin: isAdmin,
+const A = <S extends z.ZodType>(input: S, run: (u: SessionUser, i: z.infer<S>) => Promise<unknown>, access: Access = false): Action => ({
+  admin: access,
   input,
   run: run as Action["run"],
 });
+const M = "manage" as const;
 
 export const actions: Record<string, Action> = {
   // ------------------------------------------------------------- users --
@@ -30,21 +38,32 @@ export const actions: Record<string, Action> = {
   submit_request: A(z.object({ title: z.string().trim().min(3).max(120), body: z.string().trim().min(3).max(4000) }), (u, i) =>
     submitRequest(u.id, i.title, i.body).then((rid) => ({ id: rid })),
   ),
+  claim_achievement: A(z.object({ id: z.string().min(1).max(60) }), (u, i) => claimAchievement(u.id, i.id)),
+  friend_request: A(z.object({ username: z.string().trim().min(1).max(40) }), (u, i) => sendFriendRequest(u.id, i.username)),
+  friend_respond: A(z.object({ user_id: id, accept: z.boolean() }), (u, i) => respondFriendRequest(u.id, i.user_id, i.accept)),
+  friend_remove: A(z.object({ user_id: id }), (u, i) => removeFriend(u.id, i.user_id)),
+  create_manual_contest: A(z.object({ contest: z.unknown() }), (u, i) => createManualContest(u.id, i.contest).then((cid) => ({ id: cid }))),
+
+  // ------------------------------------- organizer (admin or manual owner) --
+  manual_scores: A(z.object({ contest_id: id, scores: z.array(z.unknown()).min(1).max(300) }), (u, i) => setManualScores(u.id, i.contest_id, i.scores), M),
+  edit_details: A(z.object({ contest_id: id, title: z.string().max(200), description: z.string().max(4000).default("") }), (u, i) =>
+    editContestDetails(u.id, i.contest_id, { title: i.title, description: i.description }), M),
+  add_friends: A(z.object({ contest_id: id, user_ids: z.array(id).min(1).max(64) }), (u, i) => addFriendsToContest(u.id, i.contest_id, i.user_ids), M),
 
   // ------------------------------------------------------------- admin --
   create_contest: A(z.object({ contest: z.unknown(), outcomes: z.array(z.unknown()).default([]), pool: z.array(z.unknown()).default([]) }), (u, i) =>
     admin.createContest(u.id, i.contest, i.outcomes, i.pool).then((cid) => ({ id: cid })), true),
   update_contest: A(z.object({ contest_id: id, patch: z.unknown() }), (u, i) => admin.updateContest(u.id, i.contest_id, i.patch), true),
-  replace_outcomes: A(z.object({ contest_id: id, outcomes: z.array(z.unknown()) }), (u, i) => admin.replaceOutcomes(u.id, i.contest_id, i.outcomes), true),
+  replace_outcomes: A(z.object({ contest_id: id, outcomes: z.array(z.unknown()) }), (u, i) => admin.replaceOutcomes(u.id, i.contest_id, i.outcomes), M),
   save_pool: A(z.object({ contest_id: id, pool: z.array(z.unknown()), remove_missing: z.boolean().default(false) }), (u, i) =>
     admin.savePool(u.id, i.contest_id, i.pool, i.remove_missing), true),
   set_status: A(z.object({ contest_id: id, status: z.enum(["setup", "open", "locked", "active", "awaiting_settlement"]) }), (u, i) =>
-    admin.setStatus(u.id, i.contest_id, i.status), true),
+    admin.setStatus(u.id, i.contest_id, i.status), M),
   start_draft: A(z.object({ contest_id: id, order: z.array(id).nullable().default(null) }), (u, i) => admin.startDraft(u.id, i.contest_id, i.order), true),
   import_draft: A(z.object({ contest_id: id, rosters: z.array(z.object({ entry_id: id, picks: z.array(z.string().max(80)).max(30) })).min(2) }), (u, i) =>
-    admin.importDraft(u.id, i.contest_id, i.rosters).then((n) => ({ picks: n })), true),
-  create_invite: A(z.object({ contest_id: id, label: z.string().max(60).default("") }), (u, i) => admin.createInvite(u.id, i.contest_id, i.label).then((token) => ({ token })), true),
-  revoke_invite: A(z.object({ invite_id: id }), (u, i) => admin.revokeInvite(u.id, i.invite_id), true),
+    admin.importDraft(u.id, i.contest_id, i.rosters).then((n) => ({ picks: n })), M),
+  create_invite: A(z.object({ contest_id: id, label: z.string().max(60).default("") }), (u, i) => admin.createInvite(u.id, i.contest_id, i.label).then((token) => ({ token })), M),
+  revoke_invite: A(z.object({ invite_id: id }), (u, i) => admin.revokeInvite(u.id, i.invite_id), M),
   propose_rules: A(z.object({ contest_id: id, instructions: z.string().min(5).max(4000) }), (u, i) => admin.proposeRuleset(u.id, i.contest_id, i.instructions), true),
   save_rules: A(z.object({ ruleset_id: id, rules: z.unknown(), answers: z.record(z.string(), z.string()).default({}) }), (u, i) =>
     admin.saveRulesetDraft(u.id, i.ruleset_id, i.rules, i.answers), true),
@@ -65,9 +84,9 @@ export const actions: Record<string, Action> = {
     (u, i) => admin.resolveReview(u.id, i.review_id, i.action, i), true),
   add_adjustment: A(z.object({ contest_id: id, pool_item_id: id.nullable().optional(), entry_id: id.nullable().optional(), points: z.number(), reason: z.string() }), (u, i) =>
     admin.addAdjustment(u.id, i.contest_id, i), true),
-  settlement_preview: A(z.object({ contest_id: id, outcome_id: id.nullable().optional() }), (u, i) => admin.settlementPreview(u.id, i.contest_id, i.outcome_id ?? null), true),
-  settle: A(z.object({ contest_id: id, outcome_id: id.nullable(), hash: z.string().max(100) }), (u, i) => admin.settleContest(u.id, i.contest_id, i.outcome_id, i.hash), true),
-  cancel: A(z.object({ contest_id: id, reason: z.string().max(400).default("") }), (u, i) => admin.cancelContest(u.id, i.contest_id, i.reason), true),
+  settlement_preview: A(z.object({ contest_id: id, outcome_id: id.nullable().optional() }), (u, i) => admin.settlementPreview(u.id, i.contest_id, i.outcome_id ?? null), M),
+  settle: A(z.object({ contest_id: id, outcome_id: id.nullable(), hash: z.string().max(100) }), (u, i) => admin.settleContest(u.id, i.contest_id, i.outcome_id, i.hash), M),
+  cancel: A(z.object({ contest_id: id, reason: z.string().max(400).default("") }), (u, i) => admin.cancelContest(u.id, i.contest_id, i.reason), M),
   update_request: A(z.object({ request_id: id, status: z.enum(["submitted", "reviewing", "declined"]), note: z.string().max(1000).nullable().default(null) }), (u, i) =>
     admin.updateRequest(u.id, i.request_id, i.status, i.note), true),
   demo_clock: A(z.object({ seconds: z.number().int().min(-86400 * 30).max(86400 * 30) }), (u, i) => admin.demoAdvanceClock(u.id, i.seconds), true),
@@ -78,8 +97,21 @@ export async function runAction(name: string, body: unknown) {
   if (!a) throw new AppError("validation", "Unknown action.");
   const user = await getSessionUser();
   if (!user) throw new AppError("not_signed_in");
-  if (a.admin && !user.is_admin) throw new AppError("admin_only");
+  if (a.admin === true && !user.is_admin) throw new AppError("admin_only");
   const parsed = a.input.safeParse(body ?? {});
   if (!parsed.success) throw new AppError("validation", parsed.error.issues.map((i) => `${i.path.join(".") || "input"}: ${i.message}`).join("; "));
+  if (a.admin === M && !user.is_admin) await assertCanManage(user.id, parsed.data as { contest_id?: string; invite_id?: string });
   return a.run(user, parsed.data as never);
+}
+
+/** Organizer check for "manage" actions (the database checks again). */
+async function assertCanManage(userId: string, input: { contest_id?: string; invite_id?: string }) {
+  let contestId = input.contest_id;
+  if (!contestId && input.invite_id) {
+    const [r] = await asService((q) => q.query<{ contest_id: string }>("select contest_id from public.invites where id = $1", [input.invite_id]));
+    contestId = r?.contest_id;
+  }
+  if (!contestId) throw new AppError("forbidden");
+  const [r] = await asUser(userId, (q) => q.query<{ ok: boolean }>("select public.can_manage_contest($1) as ok", [contestId]));
+  if (!r?.ok) throw new AppError("forbidden");
 }

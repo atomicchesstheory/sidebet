@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { config } from "./config";
 import { asService, getDb } from "./db";
 import { AppError } from "./errors";
@@ -61,9 +62,8 @@ async function supabaseServer() {
 }
 
 async function loadProfile(id: string): Promise<SessionUser | null> {
-  const rows = await asService((q) =>
-    q.query<SessionUser>("select id, username, display_name, is_admin from public.profiles where id = $1", [id]),
-  );
+  const db = await getDb();
+  const rows = await db.query<SessionUser>("select id, username, display_name, is_admin from public.profiles where id = $1", [id]);
   const p = rows[0];
   if (!p) return null;
   if (!p.is_admin && config.adminUsernames.includes(p.username)) {
@@ -74,7 +74,12 @@ async function loadProfile(id: string): Promise<SessionUser | null> {
 }
 
 // ------------------------------------------------------------ public API --
-export async function getSessionUser(): Promise<SessionUser | null> {
+/**
+ * The signed-in user. Cached per request, so the layout and the page share one
+ * lookup. Supabase mode verifies the session JWT with getClaims() (locally when
+ * the project uses asymmetric signing keys, otherwise via the Auth server).
+ */
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   if (config.mode === "demo") {
     const store = await cookies();
     const uid = readSessionToken(store.get(COOKIE)?.value);
@@ -83,10 +88,11 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     return loadProfile(uid);
   }
   const sb = await supabaseServer();
-  const { data } = await sb.auth.getUser();
-  if (!data.user) return null;
-  return loadProfile(data.user.id);
-}
+  const { data } = await sb.auth.getClaims();
+  const sub = data?.claims?.sub;
+  if (!sub) return null;
+  return loadProfile(sub);
+});
 
 export async function requireUser(): Promise<SessionUser> {
   const u = await getSessionUser();

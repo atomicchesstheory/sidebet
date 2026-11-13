@@ -43,7 +43,7 @@ To reset the demo, run `npm run demo:reset` and restart. Admins also get a **dem
 ## Production setup (Supabase + Vercel)
 
 1. **Create a Supabase project.**
-2. **Run the migration.** In the Supabase dashboard → SQL editor, paste and run `supabase/migrations/0001_side_bet.sql`. Or, with `DATABASE_URL` set, run `npm run db:migrate`. The file is idempotent.
+2. **Run the migrations.** In the Supabase dashboard → SQL editor, paste and run each file in `supabase/migrations/` in order (`0001_side_bet.sql`, then `0002_friends_manual_achievements.sql`). Or, with `DATABASE_URL` set, run `npm run db:migrate`. The file is idempotent.
    Do **not** run `supabase/shim/*`. That file is for local demo and tests only.
 3. **Configure Auth.** Under Authentication → Providers, enable Email. For the smoothest sign-up, turn off “Confirm email”. If you leave it on, the app tells new users to check their email.
 4. **Fill in the environment variables** (see `.env.example`), in `.env.local` locally or in Vercel → Project → Settings → Environment Variables:
@@ -60,6 +60,13 @@ Use any one of these:
 - Set `ADMIN_USERNAMES=yourname` and sign up or sign in as `yourname`. The account is promoted on sign-in.
 - Run `npm run make-admin -- yourname` (needs `DATABASE_URL`).
 - In the SQL editor, run `update public.profiles set is_admin = true where username = 'yourname';`
+
+### Player-run bets, friends and achievements
+
+- **Start a bet** (`/new`): any player can create a private "pick a side" bet or a "draft / teams" contest and run it themselves: add friends or share a link, lock entries, type in rosters and scores, and pay out. Nothing is auto-tracked. These are `contests.manual = true`; the creator gets the same controls an admin has, but only for contests they created (`can_manage_contest()`).
+- **Friends** (`/friends`): send requests by username; friends can be added straight to bets you run.
+- **Achievements** (`/achievements`): milestone rewards players claim on their own screen. Definitions live in `src/lib/server/achievements.ts`; each claim is recorded once and paid through the ledger.
+- Free chips are 10 every 23 hours (`app_settings.claim_amount`).
 
 ### No AI, no paid services
 

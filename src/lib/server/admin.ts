@@ -390,8 +390,8 @@ export async function addAdjustment(adminId: string, contestId: string, input: {
 // -------------------------------------------------------------- settlement --
 export async function settlementPreview(adminId: string, contestId: string, outcomeOverride?: string | null) {
   return asUser(adminId, async (q) => {
-    const [{ is_admin }] = await q.query("select public.is_admin() as is_admin");
-    if (!is_admin) throw new AppError("admin_only");
+    const [{ ok }] = await q.query("select public.can_manage_contest($1) as ok", [contestId]);
+    if (!ok) throw new AppError("forbidden");
     const [c] = await q.query("select * from public.contests where id = $1", [contestId]);
     if (!c) throw new AppError("contest_not_found");
     const entries = await q.query(
@@ -417,6 +417,8 @@ export async function settlementPreview(adminId: string, contestId: string, outc
         [contestId],
       );
       const adjs = await q.query("select pool_item_id, entry_id, points from public.adjustments where contest_id = $1", [contestId]);
+      const manualRows = await q.query("select pool_item_id, points from public.manual_scores where contest_id = $1", [contestId]);
+      lines.push(...manualRows);
       standings = computeStandings({
         entries: entries.map((e) => ({ id: e.id, user_id: e.user_id, seat: e.seat, joined_at: e.joined_at })),
         picks: picks as { entry_id: string; pool_item_id: string; pick_no: number }[],

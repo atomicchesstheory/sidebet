@@ -47,9 +47,12 @@ export default async function Home() {
   const openPublic = pub.filter((c) => c.status === "open" && !c.joined);
   return (
     <div className="grid gap-8">
-      <div>
-        <h1 className="font-display text-4xl font-extrabold uppercase">Hey, {user.username}</h1>
-        <p className="text-cream-dim">Pick a side. Put up chips.</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex-1">
+          <h1 className="font-display text-4xl font-extrabold uppercase">Hey, {user.username}</h1>
+          <p className="text-cream-dim">Pick a side. Put up chips.</p>
+        </div>
+        <Link href="/new" className="btn btn-lime">+ Start a bet</Link>
       </div>
       <ClaimCard canClaim={wallet.can_claim} nextAt={wallet.next_claim_at} serverNow={wallet.server_now} amount={wallet.claim_amount} balance={wallet.balance} staked={wallet.staked} />
       <section className="grid gap-3">
@@ -57,7 +60,7 @@ export default async function Home() {
         {active.length ? (
           <div className="grid gap-3 md:grid-cols-2">{active.map((c) => <ContestCard key={c.id} c={c} />)}</div>
         ) : (
-          <Empty title="Nothing in play">Browse public contests or ask for an invite link.</Empty>
+          <Empty title="Nothing in play"><Link href="/new" className="link">Start your own bet</Link>, browse public contests, or ask a friend for an invite link.</Empty>
         )}
       </section>
       <section className="grid gap-3">

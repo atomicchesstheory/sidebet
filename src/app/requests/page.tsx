@@ -18,7 +18,8 @@ export default async function Requests() {
     <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
       <section className="grid content-start gap-3">
         <h1 className="font-display text-4xl font-extrabold uppercase">Request a contest</h1>
-        <p className="text-cream-dim">Describe a bet or draft in plain English. An admin sets it up, writes the rules and attaches results.</p>
+        <p className="text-cream-dim">Describe a bet or draft in plain English. An admin sets it up, writes the rules and attaches auto-tracked results.</p>
+        <p className="rounded-lg border border-line bg-panel px-3 py-2 text-sm text-cream-dim">Don&apos;t want to wait? <Link href="/new" className="link">Start a bet yourself</Link> and enter the results by hand.</p>
         <RequestForm />
       </section>
       <section className="grid content-start gap-3">

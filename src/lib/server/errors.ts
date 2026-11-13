@@ -41,6 +41,10 @@ export const ERROR_MESSAGES: Record<string, [number, string]> = {
   validation: [400, "Check the form and try again."],
   source_blocked: [400, "That URL isn't an allowed public source."],
   rules_unresolved: [400, "Resolve every flagged rule before approving."],
+  user_not_found: [404, "No player with that username."],
+  cant_friend_self: [400, "You can't friend yourself."],
+  not_friends: [403, "You can only add people who are on your friends list."],
+  achievement_locked: [409, "You haven't unlocked that one yet."],
 };
 
 const BRAND = Symbol.for("sidebet.AppError");

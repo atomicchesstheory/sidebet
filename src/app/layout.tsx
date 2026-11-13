@@ -7,7 +7,9 @@ import { Nav } from "@/components/nav";
 import { getSessionUser } from "@/lib/server/auth";
 import { config } from "@/lib/server/config";
 import { ensureReady } from "@/lib/server/ready";
-import { getWallet } from "@/lib/server/wallet";
+import { readyAchievementCount } from "@/lib/server/achievements";
+import { incomingRequestCount } from "@/lib/server/friends";
+import { getWalletSummary } from "@/lib/server/wallet";
 
 const barlow = Barlow_Condensed({ subsets: ["latin"], weight: ["500", "600", "700", "800"], style: ["normal", "italic"], variable: "--font-barlow" });
 const dm = DM_Sans({ subsets: ["latin"], variable: "--font-dm" });
@@ -21,7 +23,9 @@ export const viewport: Viewport = { themeColor: "#131417", width: "device-width"
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   await ensureReady();
   const user = await getSessionUser();
-  const wallet = user ? await getWallet(user.id) : null;
+  const [wallet, achievementsReady, friendRequests] = user
+    ? await Promise.all([getWalletSummary(user.id), readyAchievementCount(user.id), incomingRequestCount(user.id)])
+    : [null, 0, 0];
   return (
     <html lang="en" className={`${barlow.variable} ${dm.variable}`}>
       <body className="min-h-dvh">
@@ -36,7 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" aria-label="Side Bet home">
               <Wordmark />
             </Link>
-            <Nav user={user} balance={wallet?.balance ?? null} canClaim={wallet?.can_claim ?? false} />
+            <Nav user={user} balance={wallet?.balance ?? null} canClaim={wallet?.can_claim ?? false} achievementsReady={achievementsReady} friendRequests={friendRequests} />
           </div>
         </header>
         <main className="mx-auto max-w-6xl px-4 pb-24 pt-6">{children}</main>

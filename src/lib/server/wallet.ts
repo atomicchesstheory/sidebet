@@ -1,4 +1,4 @@
-import { asUser, num } from "./db";
+import { asUser, getDb, num } from "./db";
 
 export async function getWallet(userId: string) {
   return asUser(userId, async (q) => {
@@ -40,4 +40,17 @@ export async function claimChips(userId: string) {
     const [r] = await q.query<{ r: { amount: number; balance: number; next_claim_at: string } }>("select public.claim_chips() as r");
     return r.r;
   });
+}
+
+/** Header chip count: one query, no transaction (runs on every full page load). */
+export async function getWalletSummary(userId: string) {
+  const db = await getDb();
+  const [r] = await db.query<{ balance: number; can_claim: boolean }>(
+    `select w.balance,
+            (w.last_claim_at is null or public.app_now() >= w.last_claim_at + make_interval(secs => s.claim_cooldown_seconds)) as can_claim
+       from public.wallets w cross join public.app_settings s
+      where w.user_id = $1 and s.id = 1`,
+    [userId],
+  );
+  return { balance: r?.balance ?? 0, can_claim: !!r?.can_claim };
 }
