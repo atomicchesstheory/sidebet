@@ -16,6 +16,7 @@ export const ManualContestInput = z
     sides: z.array(z.string().trim().min(1).max(80)).max(12).default([]),
     roster_size: z.number().int().min(1).max(30).nullable().default(null),
     pick_visibility: z.enum(["after_lock", "always"]).default("after_lock"),
+    visibility: z.enum(["public", "private"]).default("private"),
     terms_text: z.string().trim().max(2000).default(""),
   })
   .superRefine((v, ctx) => {
@@ -34,7 +35,7 @@ export async function createManualContest(userId: string, raw: unknown) {
     const [row] = await q.query<{ id: string }>(
       `insert into public.contests (kind, title, description, category, visibility, stake, pick_visibility, payout_rule,
          terms_text, roster_size, draft_format, draft_mode, manual, created_by)
-       values ($1, $2, $3, 'custom', 'private', $4, $5, $6, $7, $8, $9, $10, true, auth.uid()) returning id`,
+       values ($1, $2, $3, 'custom', $11, $4, $5, $6, $7, $8, $9, $10, true, auth.uid()) returning id`,
       [
         c.kind, c.title, c.description, c.stake, c.pick_visibility,
         c.kind === "bet" ? "equal_split_winners" : "winner_take_all",
@@ -42,6 +43,7 @@ export async function createManualContest(userId: string, raw: unknown) {
         c.kind === "draft" ? c.roster_size : null,
         c.kind === "draft" ? "straight" : null,
         c.kind === "draft" ? "offline" : null,
+        c.visibility,
       ],
     );
     if (c.kind === "bet") {
@@ -144,4 +146,15 @@ export async function editContestDetails(userId: string, contestId: string, raw:
   await asService((q) => q.query("select sidebet_private.bump($1)", [contestId]));
   notifyContest(contestId);
   return { title: d.title, description: d.description };
+}
+
+/** Public bets show up on Browse for everyone; private ones only for people you add or send a link to. */
+export async function setContestVisibility(userId: string, contestId: string, visibility: "public" | "private") {
+  const rows = await asUser(userId, (q) =>
+    q.query("update public.contests set visibility = $2 where id = $1 returning id", [contestId, visibility]),
+  );
+  if (!rows.length) throw new AppError("forbidden");
+  await asService((q) => q.query("select sidebet_private.bump($1)", [contestId]));
+  notifyContest(contestId);
+  return { visibility };
 }

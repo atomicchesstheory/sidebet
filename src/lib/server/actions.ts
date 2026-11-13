@@ -6,7 +6,7 @@ import { AppError } from "./errors";
 import { asService, asUser } from "./db";
 import { addFriendsToContest, removeFriend, respondFriendRequest, sendFriendRequest } from "./friends";
 import { claimAchievement } from "./achievements";
-import { createManualContest, editContestDetails, setManualScores } from "./manual";
+import { createManualContest, editContestDetails, setContestVisibility, setManualScores } from "./manual";
 import { submitRequest } from "./profiles";
 import { claimChips } from "./wallet";
 
@@ -48,6 +48,7 @@ export const actions: Record<string, Action> = {
   manual_scores: A(z.object({ contest_id: id, scores: z.array(z.unknown()).min(1).max(300) }), (u, i) => setManualScores(u.id, i.contest_id, i.scores), M),
   edit_details: A(z.object({ contest_id: id, title: z.string().max(200), description: z.string().max(4000).default("") }), (u, i) =>
     editContestDetails(u.id, i.contest_id, { title: i.title, description: i.description }), M),
+  set_visibility: A(z.object({ contest_id: id, visibility: z.enum(["public", "private"]) }), (u, i) => setContestVisibility(u.id, i.contest_id, i.visibility), M),
   add_friends: A(z.object({ contest_id: id, user_ids: z.array(id).min(1).max(64) }), (u, i) => addFriendsToContest(u.id, i.contest_id, i.user_ids), M),
 
   // ------------------------------------------------------------- admin --

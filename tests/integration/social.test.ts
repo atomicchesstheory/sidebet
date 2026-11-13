@@ -2,11 +2,11 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { asService, asUser, createPgliteDb, setDbFactory } from "@/lib/server/db";
 import { createLocalUser } from "@/lib/server/auth";
 import * as admin from "@/lib/server/admin";
-import { getContestView, joinContest } from "@/lib/server/contests";
+import { getContestView, joinContest, listContests } from "@/lib/server/contests";
 import { getWallet } from "@/lib/server/wallet";
 import { getProfile } from "@/lib/server/profiles";
 import { addFriendsToContest, friendStatus, listFriends, removeFriend, respondFriendRequest, sendFriendRequest } from "@/lib/server/friends";
-import { createManualContest, editContestDetails, getManageView, setManualScores } from "@/lib/server/manual";
+import { createManualContest, editContestDetails, getManageView, setContestVisibility, setManualScores } from "@/lib/server/manual";
 import { claimAchievement, listAchievements } from "@/lib/server/achievements";
 
 const ids: Record<string, string> = {};
@@ -126,6 +126,34 @@ describe("player-run bet (pick a side)", () => {
       q.query("insert into public.contests (kind, title, payout_rule, manual, created_by) values ('bet', 'sneaky', 'equal_split_winners', false, auth.uid())")))).toBe("forbidden");
     const mine = await createManualContest(ids.dan, { kind: "bet", title: "Coin flip", stake: 0, sides: ["Heads", "Tails"] });
     expect(await code(asUser(ids.dan, (q) => q.query("update public.contests set manual = false where id = $1", [mine])))).toBe("forbidden");
+  });
+});
+
+describe("public or private player-run bets", () => {
+  it("public bets are listed for everyone once open; private ones aren't", async () => {
+    const pub = await createManualContest(ids.cat, { kind: "bet", title: "Open to all", stake: 5, sides: ["Yes", "No"], visibility: "public" });
+    const priv = await createManualContest(ids.cat, { kind: "bet", title: "Just us", stake: 5, sides: ["Yes", "No"] });
+    await admin.setStatus(ids.cat, pub, "open");
+    await admin.setStatus(ids.cat, priv, "open");
+    const seen = (await listContests(ids.dan, "public")).map((c) => c.id);
+    expect(seen).toContain(pub);
+    expect(seen).not.toContain(priv);
+    expect(await code(getContestView(ids.dan, priv))).toBe("contest_not_found");
+    // a stranger can join the public one
+    const v = await getContestView(ids.dan, pub);
+    await joinContest(ids.dan, pub, v.outcomes[0].id);
+  });
+
+  it("organizer can switch until someone joins, then it's locked; others never can", async () => {
+    const cid = await createManualContest(ids.cat, { kind: "bet", title: "Switchable", stake: 5, sides: ["A", "B"] });
+    expect(await code(setContestVisibility(ids.dan, cid, "public"))).toBe("forbidden");
+    await setContestVisibility(ids.cat, cid, "public");
+    expect((await getContestView(ids.cat, cid)).contest.visibility).toBe("public");
+    await setContestVisibility(ids.cat, cid, "private");
+    await admin.setStatus(ids.cat, cid, "open");
+    const v = await getContestView(ids.cat, cid);
+    await joinContest(ids.cat, cid, v.outcomes[0].id);
+    expect(await code(setContestVisibility(ids.cat, cid, "public"))).toBe("terms_locked");
   });
 });
 

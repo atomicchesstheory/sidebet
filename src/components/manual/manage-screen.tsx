@@ -7,6 +7,7 @@ import type { ManageView } from "@/lib/server/manual";
 import { act } from "@/lib/client/api";
 import { Chips } from "@/components/brand";
 import { ErrorNote, StatusPill, pts, sideBorder, sideText } from "@/components/ui";
+import { VisibilityChoice } from "@/components/manual/new-manual-contest";
 
 const SEAT_COLORS = ["teal", "violet", "amber", "sky", "rose", "lime"];
 const seatColor = (seat: number) => SEAT_COLORS[(seat - 1) % SEAT_COLORS.length];
@@ -160,6 +161,20 @@ function InvitePanel({ data, ctx }: { data: ManageView; ctx: Ctx }) {
       <div>
         <h2 className="font-display text-2xl font-bold uppercase">Invite people</h2>
         {!entriesOpen && <p className="text-sm text-amber">Entries are closed, so new people can watch but not join.</p>}
+      </div>
+
+      <div className="grid gap-2">
+        <div className="label">Who can see it?</div>
+        <VisibilityChoice
+          isPublic={c.visibility === "public"}
+          disabled={!!ctx.busy || !!c.terms_locked_at}
+          onChange={(pub) => { if (pub !== (c.visibility === "public")) ctx.run("visibility", () => act("set_visibility", { contest_id: c.id, visibility: pub ? "public" : "private" })); }}
+        />
+        {c.terms_locked_at ? (
+          <p className="text-xs text-cream-faint">🔒 Locked once someone joined. It&apos;s part of the terms everyone agreed to.</p>
+        ) : c.visibility === "public" && c.status === "setup" ? (
+          <p className="text-xs text-cream-faint">It shows up on Browse as soon as you open entries.</p>
+        ) : null}
       </div>
 
       <div className="grid gap-2">

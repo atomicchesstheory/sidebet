@@ -18,6 +18,7 @@ export function NewManualContest() {
   const [sides, setSides] = useState<string[]>(["", ""]);
   const [rosterSize, setRosterSize] = useState(5);
   const [hidePicks, setHidePicks] = useState(true);
+  const [isPublic, setIsPublic] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -38,6 +39,7 @@ export function NewManualContest() {
           sides: kind === "bet" ? cleanSides : [],
           roster_size: kind === "draft" ? rosterSize : null,
           pick_visibility: hidePicks ? "after_lock" : "always",
+          visibility: isPublic ? "public" : "private",
         },
       });
       router.push(`/c/${r.id}/manage`);
@@ -121,9 +123,13 @@ export function NewManualContest() {
         </span>
       </label>
 
+      <fieldset className="grid gap-2">
+        <legend className="label mb-1">Who can see it?</legend>
+        <VisibilityChoice isPublic={isPublic} onChange={setIsPublic} />
+      </fieldset>
+
       <ErrorNote error={err} />
       <button className="btn btn-lime py-3 text-lg" disabled={!ready || busy}>{busy ? "Creating…" : "Create & invite people"}</button>
-      <p className="text-center text-xs text-cream-faint">It starts private. Only people you add or send a link to can see it.</p>
       <p className="text-center text-xs text-cream-faint">Want results tracked automatically from a live feed? <a href="/requests" className="link">Request a contest</a> from an admin instead.</p>
     </form>
   );
@@ -136,5 +142,27 @@ function KindCard({ active, onClick, title, body, icon }: { active: boolean; onC
       <span className={`font-display text-2xl font-bold uppercase ${active ? "text-lime" : ""}`}>{title}</span>
       <span className="text-sm text-cream-dim">{body}</span>
     </button>
+  );
+}
+
+/** Private / Public picker, shared by the create form and the manage page. */
+export function VisibilityChoice({ isPublic, onChange, disabled = false }: { isPublic: boolean; onChange: (pub: boolean) => void; disabled?: boolean }) {
+  const opt = (pub: boolean, icon: string, title: string, body: string) => (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-pressed={isPublic === pub}
+      onClick={() => onChange(pub)}
+      className={`card grid gap-0.5 border-2 p-3 text-left transition disabled:opacity-60 ${isPublic === pub ? "border-lime" : "border-line hover:border-cream-faint"}`}
+    >
+      <span className={`font-display text-xl font-bold uppercase ${isPublic === pub ? "text-lime" : ""}`}>{icon} {title}</span>
+      <span className="text-xs text-cream-dim">{body}</span>
+    </button>
+  );
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {opt(false, "🔒", "Private", "Only friends you add or people with your link can see and join.")}
+      {opt(true, "🌎", "Public", "Listed on Browse once it's open. Anyone signed in can join.")}
+    </div>
   );
 }
