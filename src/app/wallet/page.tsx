@@ -23,7 +23,7 @@ export default async function Wallet() {
         <div className="card p-4"><div className="chip-label text-cream-faint">Available</div><div className="font-display text-3xl font-bold"><Chips n={w.balance} /></div></div>
         <div className="card p-4"><div className="chip-label text-cream-faint">Staked now</div><div className="font-display text-3xl font-bold"><Chips n={w.staked} /></div></div>
         <div className="card col-span-2 p-4 text-sm text-cream-dim md:col-span-1">
-          New accounts start with <span className="num text-cream">{w.starting_chips}</span>. Claim <span className="num text-cream">{w.claim_amount}</span> free chips every 23 hours. Chips are free and can&apos;t be redeemed.
+          New accounts start with <span className="num text-cream">{w.starting_chips}</span>. Claim <span className="num text-cream">{w.claim_amount}</span> free chips once a week. Chips are free and can&apos;t be redeemed.
         </div>
       </div>
       <section className="card overflow-hidden">

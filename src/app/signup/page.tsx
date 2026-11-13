@@ -11,7 +11,7 @@ export default function SignUp() {
       <Suspense>
         <AuthForm kind="signup" mode={config.mode} />
       </Suspense>
-      <p className="mx-auto max-w-sm text-center text-xs text-cream-faint">You start with free play chips and can claim more every 23 hours. Chips have no cash value.</p>
+      <p className="mx-auto max-w-sm text-center text-xs text-cream-faint">You start with free play chips and can claim more once a week. Chips have no cash value.</p>
     </div>
   );
 }

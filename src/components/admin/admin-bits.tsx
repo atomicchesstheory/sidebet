@@ -45,7 +45,7 @@ export function DemoClock() {
       <span className="chip-label text-lime">Demo clock</span>
       <span className="text-cream-dim">Shift server time to test claim cooldowns and lock times:</span>
       <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => shift(3600)}>+1 hour</button>
-      <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => shift(23 * 3600)}>+23 hours</button>
+      <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => shift(7 * 86400)}>+1 week</button>
       <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => shift(3 * 86400)}>+3 days</button>
       <ErrorNote error={err} />
     </div>

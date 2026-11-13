@@ -36,7 +36,7 @@ Seeded demos:
 2. **Comets vs Owls** (public): two bets on a fictional game, “who wins?” and “overtime?”. Each shows the live score, and the outcome stays pending until the final result.
 3. **Backyard Race Day** (private): scored from results the admin types in, e.g. *“Josiah won race two”*.
 
-To reset the demo, run `npm run demo:reset` and restart. Admins also get a **demo clock** (Admin page) that shifts server time, so you can test the 23-hour claim and lock times.
+To reset the demo, run `npm run demo:reset` and restart. Admins also get a **demo clock** (Admin page) that shifts server time, so you can test the weekly claim and lock times.
 
 ---
 
@@ -66,7 +66,7 @@ Use any one of these:
 - **Start a bet** (`/new`): any player can create a private "pick a side" bet or a "draft / teams" contest and run it themselves: add friends or share a link, lock entries, type in rosters and scores, and pay out. Nothing is auto-tracked. These are `contests.manual = true`; the creator gets the same controls an admin has, but only for contests they created (`can_manage_contest()`).
 - **Friends** (`/friends`): send requests by username; friends can be added straight to bets you run.
 - **Achievements** (`/achievements`): milestone rewards players claim on their own screen. Definitions live in `src/lib/server/achievements.ts`; each claim is recorded once and paid through the ledger.
-- Free chips are 10 every 23 hours (`app_settings.claim_amount`).
+- Free chips are 10 once a week (`app_settings.claim_amount`, `claim_cooldown_seconds`).
 
 ### No AI, no paid services
 

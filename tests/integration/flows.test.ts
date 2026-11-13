@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { asService, asUser, createPgliteDb, setDbFactory } from "@/lib/server/db";
 import { createLocalUser } from "@/lib/server/auth";
 import * as admin from "@/lib/server/admin";
@@ -48,12 +48,12 @@ describe("wallet and claims", () => {
     expect(await ledgerCount(ids.dana, "starting_grant")).toBe(1);
   });
 
-  it("23-hour claim works exactly at the cutoff (server time)", async () => {
+  it("weekly claim works exactly at the cutoff (server time)", async () => {
     const r = await claimChips(ids.dana);
     expect(r.amount).toBe(10);
     expect(await balance(ids.dana)).toBe(510);
     expect(await code(claimChips(ids.dana))).toBe("claim_not_ready");
-    await shiftClock(23 * 3600 - 2);
+    await shiftClock(7 * 86400 - 2);
     expect(await code(claimChips(ids.dana))).toBe("claim_not_ready");
     const w = await getWallet(ids.dana);
     expect(w.can_claim).toBe(false);
@@ -64,13 +64,23 @@ describe("wallet and claims", () => {
   });
 
   it("concurrent claims grant exactly once", async () => {
-    await shiftClock(23 * 3600);
+    await shiftClock(7 * 86400);
     const before = await balance(ids.eli);
     const results = await Promise.all(Array.from({ length: 6 }, () => code(claimChips(ids.eli))));
     expect(results.filter((r) => r === "ok")).toHaveLength(1);
     expect(results.filter((r) => r === "claim_not_ready")).toHaveLength(5);
     expect(await balance(ids.eli)).toBe(before + 10);
     expect(await ledgerCount(ids.eli, "free_claim")).toBe(1);
+  });
+
+  it("the cooldown is one week", async () => {
+    const [s] = await asService((q) => q.query("select claim_cooldown_seconds from public.app_settings where id = 1"));
+    expect(s.claim_cooldown_seconds).toBe(7 * 86400);
+  });
+
+  // Put the server clock back so later tests see the seeded lock times as still in the future.
+  afterAll(async () => {
+    await asService((q) => q.query("update public.app_settings set clock_offset_seconds = 0 where id = 1"));
   });
 });
 

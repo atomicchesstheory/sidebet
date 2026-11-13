@@ -7,7 +7,7 @@ import { getWallet } from "@/lib/server/wallet";
 import { getProfile } from "@/lib/server/profiles";
 import { addFriendsToContest, friendStatus, listFriends, removeFriend, respondFriendRequest, sendFriendRequest } from "@/lib/server/friends";
 import { createManualContest, editContestDetails, getManageView, setContestVisibility, setManualScores } from "@/lib/server/manual";
-import { claimAchievement, listAchievements } from "@/lib/server/achievements";
+import { FAMILIES, claimAchievement, listAchievements } from "@/lib/server/achievements";
 
 const ids: Record<string, string> = {};
 const PW = "password123";
@@ -212,30 +212,51 @@ describe("achievements", () => {
   it("unlocks from real activity, pays once, and shows on the list", async () => {
     const list = await listAchievements(ids.ann);
     const state = (id: string) => list.items.find((i) => i.id === id)!.state;
-    expect(state("first_entry")).toBe("ready");
-    expect(state("first_win")).toBe("ready");
-    expect(state("squad_up")).toBe("ready");
-    expect(state("commish")).toBe("ready");
-    expect(state("closer")).toBe("ready");
-    expect(state("hat_trick")).toBe("locked");
+    expect(state("entries:1")).toBe("ready");
+    expect(state("wins:1")).toBe("ready");
+    expect(state("friends:1")).toBe("ready");
+    expect(state("commish:1")).toBe("ready");
+    expect(state("closer:1")).toBe("ready");
+    expect(state("wins:2")).toBe("locked");
     const before = await bal("ann");
-    const r = await claimAchievement(ids.ann, "first_win");
+    const r = await claimAchievement(ids.ann, "wins:1");
     expect(r).toMatchObject({ claimed: true, reward: 20, balance: before + 20 });
-    const again = await claimAchievement(ids.ann, "first_win");
+    const again = await claimAchievement(ids.ann, "wins:1");
     expect(again.claimed).toBe(false);
     expect(await bal("ann")).toBe(before + 20);
-    expect((await listAchievements(ids.ann)).items.find((i) => i.id === "first_win")!.state).toBe("claimed");
+    expect((await listAchievements(ids.ann)).items.find((i) => i.id === "wins:1")!.state).toBe("claimed");
     const [l] = await asService((q) => q.query("select count(*)::int as n from public.ledger where user_id = $1 and kind = 'achievement'", [ids.ann]));
     expect(l.n).toBe(1);
   });
 
+  it("every family has 3 tiers: base, 3x goal for 3x chips, 10x goal for 10x chips", async () => {
+    const list = await listAchievements(ids.ann);
+    expect(list.families.length).toBe(FAMILIES.length);
+    for (const f of list.families) {
+      const [t1, t2, t3] = f.tiers;
+      expect(f.tiers).toHaveLength(3);
+      expect([t2.target, t3.target]).toEqual([t1.target * 3, t1.target * 10]);
+      expect([t2.reward, t3.reward]).toEqual([t1.reward * 3, t1.reward * 10]);
+    }
+    expect(new Set(list.items.map((i) => i.id)).size).toBe(list.items.length);
+  });
+
+  it("a claim under an old (pre-tier) id counts as that tier and never pays twice", async () => {
+    await asService((q) => q.query("insert into public.achievement_claims (user_id, achievement_id, reward) values ($1, 'first_entry', 10)", [ids.ann]));
+    expect((await listAchievements(ids.ann)).items.find((i) => i.id === "entries:1")!.state).toBe("claimed");
+    const before = await bal("ann");
+    expect((await claimAchievement(ids.ann, "entries:1")).claimed).toBe(false);
+    expect(await bal("ann")).toBe(before);
+  });
+
   it("locked achievements can't be claimed", async () => {
-    expect(await code(claimAchievement(ids.dan, "hat_trick"))).toBe("achievement_locked");
+    expect(await code(claimAchievement(ids.dan, "wins:2"))).toBe("achievement_locked");
+    expect(await code(claimAchievement(ids.dan, "hat_trick"))).toBe("validation");
     expect(await code(claimAchievement(ids.dan, "made_up"))).toBe("validation");
   });
 
   it("the claim function is server-only", async () => {
-    expect(await code(asUser(ids.dan, (q) => q.query("select sidebet_private.claim_achievement($1, 'hat_trick', 500, 'x')", [ids.dan])))).toBe("forbidden");
+    expect(await code(asUser(ids.dan, (q) => q.query("select sidebet_private.claim_achievement($1, 'wins:3', 200, 'x')", [ids.dan])))).toBe("forbidden");
   });
 
   it("profile shows fun stats", async () => {
