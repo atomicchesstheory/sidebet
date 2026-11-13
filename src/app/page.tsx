@@ -48,7 +48,7 @@ export default async function Home() {
   return (
     <div className="grid gap-8">
       <div>
-        <h1 className="font-display text-4xl font-extrabold uppercase">Hey, {user.display_name}</h1>
+        <h1 className="font-display text-4xl font-extrabold uppercase">Hey, {user.username}</h1>
         <p className="text-cream-dim">Pick a side. Put up chips.</p>
       </div>
       <ClaimCard canClaim={wallet.can_claim} nextAt={wallet.next_claim_at} serverNow={wallet.server_now} amount={wallet.claim_amount} balance={wallet.balance} staked={wallet.staked} />

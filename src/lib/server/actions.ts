@@ -3,7 +3,7 @@ import * as admin from "./admin";
 import { getSessionUser, type SessionUser } from "./auth";
 import { joinContest, makeDraftPick, redeemInvite } from "./contests";
 import { AppError } from "./errors";
-import { submitRequest, updateDisplayName } from "./profiles";
+import { submitRequest } from "./profiles";
 import { claimChips } from "./wallet";
 
 /**
@@ -27,7 +27,6 @@ export const actions: Record<string, Action> = {
   draft_pick: A(z.object({ contest_id: id, pool_item_id: id, expected_pick_no: z.number().int().positive().optional() }), (u, i) =>
     makeDraftPick(u.id, i.contest_id, i.pool_item_id, i.expected_pick_no).then((pick_no) => ({ pick_no })),
   ),
-  update_display_name: A(z.object({ display_name: z.string().trim().min(1).max(40) }), (u, i) => updateDisplayName(u.id, i.display_name)),
   submit_request: A(z.object({ title: z.string().trim().min(3).max(120), body: z.string().trim().min(3).max(4000) }), (u, i) =>
     submitRequest(u.id, i.title, i.body).then((rid) => ({ id: rid })),
   ),

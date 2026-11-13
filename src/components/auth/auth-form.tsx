@@ -25,7 +25,6 @@ export function AuthForm({ kind, mode }: { kind: "signin" | "signup"; mode: "dem
       } else {
         const r = await post<{ needsConfirmation: boolean }>("/api/auth/signup", {
           username: String(f.get("username") ?? "").toLowerCase(),
-          display_name: f.get("display_name"),
           password: f.get("password"),
           ...(mode === "supabase" ? { email: f.get("email") } : {}),
         });
@@ -56,10 +55,6 @@ export function AuthForm({ kind, mode }: { kind: "signin" | "signup"; mode: "dem
           <label>
             <span className="label">Username (3–24: a–z, 0–9, _)</span>
             <input name="username" className="input" pattern="[a-zA-Z0-9_]{3,24}" autoComplete="username" required autoFocus />
-          </label>
-          <label>
-            <span className="label">Display name</span>
-            <input name="display_name" className="input" maxLength={40} />
           </label>
           {mode === "supabase" && (
             <label>

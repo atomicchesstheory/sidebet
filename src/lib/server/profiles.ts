@@ -87,10 +87,6 @@ export async function getProfile(viewerId: string, username: string) {
 }
 export type ProfileView = Awaited<ReturnType<typeof getProfile>>;
 
-export async function updateDisplayName(userId: string, name: string) {
-  await asUser(userId, (q) => q.query("select public.update_display_name($1)", [name]));
-}
-
 // ---------------------------------------------------------- requests --
 export async function submitRequest(userId: string, title: string, body: string) {
   return asUser(userId, async (q) => {

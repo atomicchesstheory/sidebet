@@ -73,8 +73,8 @@ async function main() {
   const out = new Session("outsider");
   ok((await admin.json("/api/auth/signin", ADMIN)).ok, "admin signs in");
   ok((await out.json("/api/auth/signin", OUTSIDER)).ok, "outsider signs in");
-  ok((await a.json("/api/auth/signup", { username: `bro_a_${tag}`, password: "password123", display_name: "Brother A" })).ok, "account A signs up");
-  ok((await b.json("/api/auth/signup", { username: `bro_b_${tag}`, password: "password123", display_name: "Brother B" })).ok, "account B signs up");
+  ok((await a.json("/api/auth/signup", { username: `bro_a_${tag}`, password: "password123" })).ok, "account A signs up");
+  ok((await b.json("/api/auth/signup", { username: `bro_b_${tag}`, password: "password123" })).ok, "account B signs up");
   const dup = await b.json("/api/auth/signup", { username: `bro_b_${tag}`, password: "password123" });
   ok(dup.status === 409, "usernames are unique");
 
@@ -127,8 +127,8 @@ async function main() {
 
   // --- import the offline rosters ---
   const v1 = (await admin.json(`/api/contests/${cid}`)).data;
-  const entA = v1.entrants.find((e) => e.display_name === "Brother A").entry_id;
-  const entB = v1.entrants.find((e) => e.display_name === "Brother B").entry_id;
+  const entA = v1.entrants.find((e) => e.username === `bro_a_${tag}`).entry_id;
+  const entB = v1.entrants.find((e) => e.username === `bro_b_${tag}`).entry_id;
   const imp = await admin.act("import_draft", {
     contest_id: cid,
     rosters: [
@@ -154,9 +154,9 @@ async function main() {
   ok(la.events.includes("change") && lb.events.includes("change"), "both sessions received a live change event");
   const va = (await a.json(`/api/contests/${cid}`)).data;
   const vb = (await b.json(`/api/contests/${cid}`)).data;
-  const totals = (v) => Object.fromEntries(v.rosters.map((r) => [r.display_name, r.total]));
+  const totals = (v) => Object.fromEntries(v.rosters.map((r) => [r.username, r.total]));
   ok(JSON.stringify(totals(va)) === JSON.stringify(totals(vb)), `both sessions see the same standings ${JSON.stringify(totals(va))}`);
-  const gus = va.rosters.find((r) => r.display_name === "Brother A").picks.find((p) => p.name === "Gus Moreau");
+  const gus = va.rosters.find((r) => r.username === `bro_a_${tag}`).picks.find((p) => p.name === "Gus Moreau");
   ok(gus.points === 5 && gus.lines.map((l) => `${l.label}:${l.points}`).join(",") === "Match win:2,Upset bonus:3", "Gus Moreau shows 5 pts = Match win +2, Upset bonus +3");
   ok(va.rosters.every((r) => r.picks.length === 4), "every drafted pick is listed, including zero-point picks");
 
@@ -168,7 +168,7 @@ async function main() {
   const corr = await admin.act("manual_apply", { contest_id: cid, facts: corrected });
   ok(corr.data.counts.correction === 1, "a corrected result is recorded as a correction");
   const vb3 = (await b.json(`/api/contests/${cid}`)).data;
-  ok(totals(vb3)["Brother A"] === 0 && totals(vb3)["Brother B"] === 2, `standings recalculated after correction ${JSON.stringify(totals(vb3))}`);
+  ok(totals(vb3)[`bro_a_${tag}`] === 0 && totals(vb3)[`bro_b_${tag}`] === 2, `standings recalculated after correction ${JSON.stringify(totals(vb3))}`);
   ok(vb3.changes[0].kind === "correction", `change log shows: "${vb3.changes[0].summary}"`);
 
   // --- settle ---
@@ -181,7 +181,7 @@ async function main() {
   ok(s1.data.result === "settled" && s2.data.result === "already_settled", "settlement retry doesn't pay twice");
   const fa = (await a.json(`/api/contests/${cid}`)).data;
   ok(fa.contest.status === "settled", "both see the settled contest");
-  const payB = fa.entrants.find((e) => e.display_name === "Brother B").payout;
+  const payB = fa.entrants.find((e) => e.username === `bro_b_${tag}`).payout;
   ok(payB === 80, "Brother B (leader) is paid the pot");
 
   la.close();

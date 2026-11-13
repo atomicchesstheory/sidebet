@@ -41,7 +41,7 @@ export function DraftImport({ view }: { view: ContestView }) {
   const short = rosters.filter((r) => r.picks.length < (c.roster_size ?? 0));
   const problems = [
     ...[...dupes].map((d) => `“${d}” is on more than one roster.`),
-    ...tooBig.map((r) => `${r.entry.display_name} has ${r.picks.length} picks (roster size ${c.roster_size}).`),
+    ...tooBig.map((r) => `${r.entry.username} has ${r.picks.length} picks (roster size ${c.roster_size}).`),
   ];
 
   return (
@@ -58,13 +58,13 @@ export function DraftImport({ view }: { view: ContestView }) {
         <div className="grid gap-4 md:grid-cols-2">
           {view.entrants.map((e) => (
             <label key={e.entry_id} className={`card grid gap-2 border-t-4 p-4 ${sideBorder[SEAT_COLORS[(e.seat - 1) % 6]]}`}>
-              <span className={`font-display text-2xl font-bold uppercase ${sideText[SEAT_COLORS[(e.seat - 1) % 6]]}`}>{e.display_name}</span>
+              <span className={`font-display text-2xl font-bold uppercase ${sideText[SEAT_COLORS[(e.seat - 1) % 6]]}`}>{e.username}</span>
               <textarea
                 className="input min-h-48 font-mono text-sm"
                 value={texts[e.entry_id]}
                 onChange={(ev) => setTexts({ ...texts, [e.entry_id]: ev.target.value })}
                 placeholder={pool.slice(0, c.roster_size ?? 4).map((p) => p.name).join("\n")}
-                aria-label={`${e.display_name} roster`}
+                aria-label={`${e.username} roster`}
               />
               <span className="num text-xs text-cream-dim">{rosters.find((r) => r.entry.entry_id === e.entry_id)?.picks.length ?? 0} / {c.roster_size} picks</span>
             </label>
@@ -74,7 +74,7 @@ export function DraftImport({ view }: { view: ContestView }) {
         <div className="grid gap-4 md:grid-cols-2">
           {rosters.map((r) => (
             <div key={r.entry.entry_id} className={`card border-t-4 p-4 ${sideBorder[SEAT_COLORS[(r.entry.seat - 1) % 6]]}`}>
-              <div className={`font-display text-2xl font-bold uppercase ${sideText[SEAT_COLORS[(r.entry.seat - 1) % 6]]}`}>{r.entry.display_name}</div>
+              <div className={`font-display text-2xl font-bold uppercase ${sideText[SEAT_COLORS[(r.entry.seat - 1) % 6]]}`}>{r.entry.username}</div>
               <ol className="mt-2 grid gap-1 text-sm">
                 {r.picks.map((p, i) => (
                   <li key={i} className="flex items-center gap-2">
@@ -92,7 +92,7 @@ export function DraftImport({ view }: { view: ContestView }) {
       )}
 
       {problems.length > 0 && <ErrorNote error={problems.join(" ")} />}
-      {short.length > 0 && problems.length === 0 && <p className="text-sm text-amber">{short.map((r) => `${r.entry.display_name} has ${r.picks.length} of ${c.roster_size} picks.`).join(" ")} You can import partial rosters.</p>}
+      {short.length > 0 && problems.length === 0 && <p className="text-sm text-amber">{short.map((r) => `${r.entry.username} has ${r.picks.length} of ${c.roster_size} picks.`).join(" ")} You can import partial rosters.</p>}
       <ErrorNote error={err} />
       <div className="flex gap-2">
         {step === "enter" ? (

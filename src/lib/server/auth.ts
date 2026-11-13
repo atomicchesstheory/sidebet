@@ -125,12 +125,12 @@ export async function createLocalUser(username: string, password: string, displa
   });
 }
 
-export async function signUp(input: { username: string; password: string; displayName: string; email?: string }) {
+export async function signUp(input: { username: string; password: string; email?: string }) {
   const username = input.username.trim().toLowerCase();
   if (!USERNAME_RE.test(username)) throw new AppError("validation", "Usernames are 3–24 lowercase letters, numbers or underscores.");
   if (!(await usernameAvailable(username))) throw new AppError("username_taken");
   if (config.mode === "demo") {
-    const id = await createLocalUser(username, input.password, input.displayName || username);
+    const id = await createLocalUser(username, input.password, username);
     (await cookies()).set(COOKIE, makeSessionToken(id), { httpOnly: true, sameSite: "lax", path: "/", maxAge: MAX_AGE, secure: process.env.NODE_ENV === "production" });
     return { needsConfirmation: false };
   }
@@ -139,7 +139,7 @@ export async function signUp(input: { username: string; password: string; displa
   const { data, error } = await sb.auth.signUp({
     email: input.email,
     password: input.password,
-    options: { data: { username, display_name: input.displayName || username } },
+    options: { data: { username, display_name: username } },
   });
   if (error) throw new AppError("validation", error.message);
   return { needsConfirmation: !data.session };

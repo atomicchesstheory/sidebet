@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Chips } from "@/components/brand";
-import { DisplayNameForm } from "@/components/display-name-form";
 import { Empty, StatusPill } from "@/components/ui";
 import { fmtTime } from "@/lib/format";
 import { getSessionUser } from "@/lib/server/auth";
@@ -26,14 +25,12 @@ export default async function Profile({ params, searchParams }: { params: Promis
     throw e;
   }
   const { profile, stats, history, draftFinishes, h2h } = data;
-  const isMe = profile.id === user.id;
   const focus = vs ? h2h.find((h) => h.username === vs) : null;
   return (
     <div className="grid gap-6">
       <header className="grid gap-1">
-        <div className="chip-label text-cream-faint">@{profile.username}{profile.is_admin ? " · admin" : ""}</div>
-        <h1 className="font-display text-5xl font-extrabold uppercase leading-none">{profile.display_name}</h1>
-        {isMe && <DisplayNameForm current={profile.display_name} />}
+        {profile.is_admin && <div className="chip-label text-cream-faint">admin</div>}
+        <h1 className="font-display text-5xl font-extrabold uppercase leading-none">{profile.username}</h1>
       </header>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
@@ -48,7 +45,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
         <div className="card border-lime/50 p-4">
           <div className="chip-label text-lime">Head-to-head</div>
           <div className="font-display text-3xl font-extrabold uppercase">
-            {profile.display_name} <span className="num text-lime">{focus.w}-{focus.l}{focus.t ? `-${focus.t}` : ""}</span> vs {focus.display_name}
+            {profile.username} <span className="num text-lime">{focus.w}-{focus.l}{focus.t ? `-${focus.t}` : ""}</span> vs {focus.username}
           </div>
         </div>
       )}
@@ -62,7 +59,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
             <ul className="mt-2 grid gap-1 text-sm">
               {h2h.map((h) => (
                 <li key={h.user_id} className="flex items-center gap-2">
-                  <Link href={`/u/${profile.username}?vs=${h.username}`} className="flex-1 font-semibold hover:text-lime">vs {h.display_name}</Link>
+                  <Link href={`/u/${profile.username}?vs=${h.username}`} className="flex-1 font-semibold hover:text-lime">vs {h.username}</Link>
                   <span className="num font-bold">{h.w}-{h.l}{h.t ? `-${h.t}` : ""}</span>
                 </li>
               ))}

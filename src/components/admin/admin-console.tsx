@@ -509,8 +509,8 @@ function ResultsTab({ data, reload }: { data: AdminData; reload: () => Promise<v
             <select className="input" value={adj.target} onChange={(e) => setAdj({ ...adj, target: e.target.value })} aria-label="Target">
               <option value="">Choose pick or roster…</option>
               {view.rosters.map((r) => (
-                <optgroup key={r.entry_id} label={r.display_name}>
-                  <option value={`e:${r.entry_id}`}>Whole roster: {r.display_name}</option>
+                <optgroup key={r.entry_id} label={r.username}>
+                  <option value={`e:${r.entry_id}`}>Whole roster: {r.username}</option>
                   {r.picks.map((p) => <option key={p.pool_item_id} value={`p:${p.pool_item_id}`}>{p.name}</option>)}
                 </optgroup>
               ))}
@@ -646,7 +646,7 @@ function SettleTab({ data, reload }: { data: AdminData; reload: () => Promise<vo
       <section className="card p-4">
         <h2 className="font-display text-xl font-bold uppercase">Settled {fmtTime(c.settled_at)}</h2>
         <ul className="mt-2 grid gap-1 text-sm">
-          {view.entrants.map((e) => <li key={e.entry_id} className="flex gap-2"><span className="flex-1">{e.display_name}</span><span className="chip-label">{e.status}</span><span className="num">payout {e.payout} · refund {e.refund}</span></li>)}
+          {view.entrants.map((e) => <li key={e.entry_id} className="flex gap-2"><span className="flex-1">{e.username}</span><span className="chip-label">{e.status}</span><span className="num">payout {e.payout} · refund {e.refund}</span></li>)}
         </ul>
       </section>
     );
@@ -678,7 +678,7 @@ function SettleTab({ data, reload }: { data: AdminData; reload: () => Promise<vo
               <tbody>
                 {preview.lines.map((l: any) => (
                   <tr key={l.entry_id} className="border-t border-line">
-                    <td className="py-1.5">{l.display_name}</td><td><span className="chip-label">{l.status}</span></td>
+                    <td className="py-1.5">{l.username}</td><td><span className="chip-label">{l.status}</span></td>
                     <td className="num">{l.place ?? "—"}</td><td className="num">{l.points ?? "—"}</td>
                     <td className="num">{l.payout}</td><td className="num">{l.refund}</td>
                     <td className={`num font-bold ${l.payout + l.refund - l.stake >= 0 ? "text-lime" : "text-rose"}`}>{l.payout + l.refund - l.stake}</td>

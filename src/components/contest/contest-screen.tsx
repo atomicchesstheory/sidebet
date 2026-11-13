@@ -85,7 +85,7 @@ function ClosedBanner({ view }: { view: ContestView }) {
     <div className="card border-lime/50 bg-lime/5 p-4">
       <div className="chip-label text-lime">Settled {fmtTime(c.settled_at)}</div>
       <div className="font-display text-3xl font-extrabold uppercase">
-        {outcome ? `${outcome.label}` : winners.length === 1 ? `${winners[0].display_name} wins` : winners.length > 1 ? "Tied — pot split" : "Final"}
+        {outcome ? `${outcome.label}` : winners.length === 1 ? `${winners[0].username} wins` : winners.length > 1 ? "Tied — pot split" : "Final"}
       </div>
       <div className="mt-1 flex flex-wrap gap-x-4 text-sm">
         {pushed ? (
@@ -93,7 +93,7 @@ function ClosedBanner({ view }: { view: ContestView }) {
         ) : (
           view.entrants.map((e) => (
             <span key={e.entry_id} className={e.payout > 0 ? "text-lime" : "text-cream-dim"}>
-              {e.display_name} <span className="num">{e.payout - e.stake + e.refund >= 0 ? "+" : ""}{e.payout - e.stake + e.refund}</span>
+              {e.username} <span className="num">{e.payout - e.stake + e.refund >= 0 ? "+" : ""}{e.payout - e.stake + e.refund}</span>
             </span>
           ))
         )}
@@ -172,7 +172,7 @@ function DraftBoard({ view }: { view: ContestView }) {
             {ordered.map((r, i) => (
               <div key={r.entry_id} className={i === 1 ? "order-3 text-right" : ""}>
                 <div className={`chip-label ${sideText[seatColor(view, r.entry_id)]}`}>
-                  {r.display_name}{r.user_id === view.viewer.id ? " · you" : ""}
+                  {r.username}{r.user_id === view.viewer.id ? " · you" : ""}
                 </div>
                 <BigScore value={r.total} color={seatColor(view, r.entry_id)} align={i === 1 ? "right" : "left"} />
               </div>
@@ -184,7 +184,7 @@ function DraftBoard({ view }: { view: ContestView }) {
             {rosters.map((r) => (
               <button key={r.entry_id} onClick={() => setSelected(r.entry_id)} className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-left ${selected === r.entry_id ? "bg-panel-2" : ""}`}>
                 <span className="num w-8 font-display text-2xl font-bold text-cream-faint">{r.place}</span>
-                <span className={`flex-1 font-semibold ${sideText[seatColor(view, r.entry_id)]}`}>{r.display_name}{r.tied ? " (tied)" : ""}{r.user_id === view.viewer.id ? " · you" : ""}</span>
+                <span className={`flex-1 font-semibold ${sideText[seatColor(view, r.entry_id)]}`}>{r.username}{r.tied ? " (tied)" : ""}{r.user_id === view.viewer.id ? " · you" : ""}</span>
                 <span className="num font-display text-3xl font-extrabold">{pts(r.total)}</span>
               </button>
             ))}
@@ -192,7 +192,7 @@ function DraftBoard({ view }: { view: ContestView }) {
         )}
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <span className="font-display text-xl font-bold uppercase">
-            {tiedTop ? (final ? "Finished tied" : "Tied") : `${leader.display_name} ${final ? "wins" : "leads"}${two ? ` by ${pts(margin)}` : ""}`}
+            {tiedTop ? (final ? "Finished tied" : "Tied") : `${leader.username} ${final ? "wins" : "leads"}${two ? ` by ${pts(margin)}` : ""}`}
           </span>
           <span className="text-cream-dim">Pot <Chips n={view.pot} className="text-cream" /> · {view.terms.payout}</span>
           {view.ruleset && <ScoringButton view={view} />}
@@ -205,7 +205,7 @@ function DraftBoard({ view }: { view: ContestView }) {
           {ordered.map((r) => (
             <button key={r.entry_id} role="tab" aria-selected={selected === r.entry_id} onClick={() => setSelected(r.entry_id)}
               className={`flex-1 rounded-lg border px-3 py-2 text-sm font-bold ${selected === r.entry_id ? `${sideBorder[seatColor(view, r.entry_id)]} ${sideText[seatColor(view, r.entry_id)]}` : "border-line text-cream-dim"}`}>
-              {r.display_name} · <span className="num">{pts(r.total)}</span>
+              {r.username} · <span className="num">{pts(r.total)}</span>
             </button>
           ))}
         </div>
@@ -232,7 +232,7 @@ function RosterCard({ view, roster }: { view: ContestView; roster: ContestView["
     <div className={`card overflow-hidden border-t-4 ${sideBorder[color]}`}>
       <div className="flex items-baseline justify-between px-4 pb-2 pt-3">
         <div>
-          <div className={`font-display text-2xl font-bold uppercase ${sideText[color]}`}>{roster.display_name}</div>
+          <div className={`font-display text-2xl font-bold uppercase ${sideText[color]}`}>{roster.username}</div>
           <div className="text-xs text-cream-dim">
             {roster.place === 1 && !roster.tied ? "1st" : roster.tied ? `Tied ${roster.place}` : `#${roster.place}`} · {roster.picks.length} picks
           </div>
@@ -302,7 +302,7 @@ function Entrants({ view }: { view: ContestView }) {
     <div className="flex flex-wrap gap-2">
       {view.entrants.map((e) => (
         <Link key={e.entry_id} href={`/u/${e.username}`} className={`rounded-full border px-3 py-1 text-sm font-semibold ${sideBorder[SEAT_COLORS[(e.seat - 1) % 6]]} ${sideText[SEAT_COLORS[(e.seat - 1) % 6]]}`}>
-          {e.display_name}
+          {e.username}
         </Link>
       ))}
     </div>
@@ -389,7 +389,7 @@ function BetBoard({ view, onChanged }: { view: ContestView; onChanged: () => voi
                     <span className="num font-bold">{o.count}</span>
                     <span className="text-cream-dim">backed by</span>
                     {o.backers.map((b) => (
-                      <Link key={b.user_id} href={`/u/${b.username}`} className="rounded-full bg-panel-2 px-2 py-0.5 text-xs font-semibold">{b.display_name}</Link>
+                      <Link key={b.user_id} href={`/u/${b.username}`} className="rounded-full bg-panel-2 px-2 py-0.5 text-xs font-semibold">{b.username}</Link>
                     ))}
                   </div>
                 )}

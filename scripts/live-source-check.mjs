@@ -68,7 +68,7 @@ console.log(`AI/rules provider: ${p.provider}`);
 console.log("check 1:", JSON.stringify(first.map((s) => ({ ok: s.ok, notes: s.notes, counts: s.counts, error: s.error }))));
 console.log("check 2 (recheck):", JSON.stringify(second.map((s) => ({ ok: s.ok, counts: s.counts }))));
 for (const r of view.rosters) {
-  console.log(`${r.display_name}: ${r.total} pts`);
+  console.log(`${r.username}: ${r.total} pts`);
   for (const pk of r.picks) console.log(`   ${pk.name}: ${pk.points}  ${pk.lines.map((l) => `${l.label} +${l.points} [${l.detail}]`).join("; ")}`);
 }
 console.log(`last_success_at: ${view.contest.last_success_at}  contest: /c/${id}`);

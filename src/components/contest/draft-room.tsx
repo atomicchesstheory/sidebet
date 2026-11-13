@@ -60,7 +60,7 @@ export function DraftRoom({ initial }: { initial: ContestView }) {
           <>
             <div className="chip-label text-cream-faint">Pick {d.next_pick_no} of {d.total_picks} · {c.draft_format === "snake" ? "Snake" : "Straight"} draft</div>
             <div className="font-display text-5xl font-extrabold uppercase leading-none">
-              {mine ? <span className="text-lime">You&apos;re on the clock</span> : <>On the clock: <span className={sideText[color(onClock.entry_id)]}>{onClock.display_name}</span></>}
+              {mine ? <span className="text-lime">You&apos;re on the clock</span> : <>On the clock: <span className={sideText[color(onClock.entry_id)]}>{onClock.username}</span></>}
             </div>
             {view.viewer.is_admin && !mine && <div className="mt-1 text-sm text-amber">Admin: you can make this pick on their behalf.</div>}
           </>
@@ -95,7 +95,7 @@ export function DraftRoom({ initial }: { initial: ContestView }) {
           <div className="grid gap-3 sm:grid-cols-2">
             {view.entrants.map((e) => (
               <div key={e.entry_id} className={`card border-t-4 p-3 ${sideBorder[color(e.entry_id)]} ${d.on_clock === e.entry_id ? "ring-1 ring-lime" : ""}`}>
-                <div className={`font-display text-xl font-bold uppercase ${sideText[color(e.entry_id)]}`}>{e.display_name}</div>
+                <div className={`font-display text-xl font-bold uppercase ${sideText[color(e.entry_id)]}`}>{e.username}</div>
                 <ol className="mt-1 grid gap-0.5 text-sm">
                   {d.picks.filter((p) => p.entry_id === e.entry_id).map((p) => (
                     <li key={p.pick_no}><span className="num mr-2 text-xs text-cream-faint">#{p.pick_no}</span>{d.pool.find((x) => x.id === p.pool_item_id)?.name}</li>
@@ -116,7 +116,7 @@ export function DraftRoom({ initial }: { initial: ContestView }) {
                 {[...d.picks].reverse().map((p) => (
                   <li key={p.pick_no} className="flex gap-2">
                     <span className="num w-14 text-cream-faint">R{p.round} #{p.pick_no}</span>
-                    <span className={`font-semibold ${sideText[color(p.entry_id)]}`}>{entrant(p.entry_id)?.display_name}</span>
+                    <span className={`font-semibold ${sideText[color(p.entry_id)]}`}>{entrant(p.entry_id)?.username}</span>
                     <span>{d.pool.find((x) => x.id === p.pool_item_id)?.name}</span>
                   </li>
                 ))}
