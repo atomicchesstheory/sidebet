@@ -26,17 +26,23 @@ export default async function Profile({ params, searchParams }: { params: Promis
     if (isAppError(e)) return <Empty title="No such player" />;
     throw e;
   }
-  const { profile, stats, history, draftFinishes, h2h } = data;
+  const { profile, stats, history, draftFinishes, h2h, balance } = data;
   const focus = vs ? h2h.find((h) => h.username === vs) : null;
   const fStatus = await friendStatus(user.id, profile.id);
   const nemesis = [...h2h].filter((h) => h.l > h.w).sort((a, b) => b.l - b.w - (a.l - a.w))[0];
   const victim = [...h2h].filter((h) => h.w > h.l).sort((a, b) => b.w - b.l - (a.w - a.l))[0];
   return (
     <div className="grid gap-6">
-      <header className="grid gap-1">
-        {profile.is_admin && <div className="chip-label text-cream-faint">admin</div>}
-        <h1 className="font-display text-5xl font-extrabold uppercase leading-none">{profile.username}</h1>
-        <FriendButton userId={profile.id} username={profile.username} status={fStatus} />
+      <header className="flex flex-wrap items-end gap-4">
+        <div className="grid flex-1 gap-1">
+          {profile.is_admin && <div className="chip-label text-cream-faint">admin</div>}
+          <h1 className="font-display text-5xl font-extrabold uppercase leading-none">{profile.username}</h1>
+          <FriendButton userId={profile.id} username={profile.username} status={fStatus} />
+        </div>
+        <div className="card px-4 py-2">
+          <div className="chip-label text-cream-faint">Balance</div>
+          <div className="font-display text-4xl font-extrabold"><Chips n={balance} /></div>
+        </div>
       </header>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">

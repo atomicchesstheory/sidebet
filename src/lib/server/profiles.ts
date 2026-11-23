@@ -1,4 +1,4 @@
-import { asUser, num } from "./db";
+import { asService, asUser, num } from "./db";
 import { bestStreak } from "./achievements";
 import { AppError } from "./errors";
 
@@ -23,6 +23,14 @@ type HistRow = {
 
 /** Profile + history, as seen by `viewerId` (RLS hides contests/picks the viewer can't see). */
 export async function getProfile(viewerId: string, username: string) {
+  const data = await profileData(viewerId, username);
+  // Chip balance is shown on every profile. Wallet rows are owner-only under RLS,
+  // so the server reads just this one number.
+  const [w] = await asService((q) => q.query<{ balance: number }>("select balance from public.wallets where user_id = $1", [data.profile.id]));
+  return { ...data, balance: num(w?.balance) };
+}
+
+async function profileData(viewerId: string, username: string) {
   return asUser(viewerId, async (q) => {
     const [p] = await q.query<{ id: string; username: string; display_name: string; is_admin: boolean; created_at: string }>(
       "select id, username, display_name, is_admin, created_at from public.profiles where username = $1",

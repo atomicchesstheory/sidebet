@@ -268,6 +268,13 @@ describe("achievements", () => {
     expect(p.stats.win_rate).toBe(100);
   });
 
+  it("profile shows the player's current balance, to them and to others", async () => {
+    const own = await getProfile(ids.ann, "ann");
+    expect(own.balance).toBe(await bal("ann"));
+    const seenByDan = await getProfile(ids.dan, "ann");
+    expect(seenByDan.balance).toBe(await bal("ann"));
+  });
+
   it("free chips are now 10", async () => {
     const [s] = await asService((q) => q.query("select claim_amount from public.app_settings where id = 1"));
     expect(s.claim_amount).toBe(10);
